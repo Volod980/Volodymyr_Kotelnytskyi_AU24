@@ -10,8 +10,19 @@
           from film f 
    left join  public.inventory inv
    on f.film_id = inv.film_id 
-   left join public.rental r 
+   inner join public.rental r 
    on inv.inventory_id = r.inventory_id 
    group by title,f.rating
-   order by count(rental_id) desc 
-   limit 5
+		   having count(rental_id) >= (select min(num_of_rent) 
+		                                         from  ( select title,
+							 count(r.rental_id) as num_of_rent
+							 from film f 
+							 left join  public.inventory inv
+							 on f.film_id = inv.film_id 
+							inner join public.rental r 
+							on inv.inventory_id = r.inventory_id 
+							group by title,f.rating
+							order by count(rental_id) desc
+							limit 5) v)
+	order by count(rental_id) desc			
+	--I have no film rating system in my task description. Where can I find it ?
