@@ -1,33 +1,44 @@
+with last_store as (
+				    select r.staff_id,
+				           inv.store_id,
+				           MAX(pm.payment_date) as last_payment_date
+				    from rental r
+				    left join payment pm 
+				    on pm.rental_id = r.rental_id
+				    left join public.inventory inv 
+				    on inv.inventory_id = r.inventory_id
+				    group by r.staff_id, inv.store_id
+),
+latest_store_where_staff_worked as (
+						    select distinct  on (ls.staff_id) 
+						           ls.staff_id,
+						           ls.store_id
+						    from last_store ls
+						    order by ls.staff_id, ls.last_payment_date desc ),
+amount as (
+		    select r.staff_id,
+		           sum(pm.amount) as total_amount
+		    from rental r
+		    inner join payment pm 
+		    on pm.rental_id = r.rental_id
+		    left join public.inventory inv 
+		    on inv.inventory_id = r.inventory_id
+		    where to_char(pm.payment_date,'dd.mm.yyyy') between '01.01.2017' and '31.12.2017'
+		    group by r.staff_id
+)
 
---PART 2, task 1
-select    ll.staff_id,
-          store_id,
-          amount 
-          from (select * from ( select r.staff_id,
-						                inv.store_id,
-						                payment_date, 
-						                row_number() over ( partition by r.staff_id order by pm.payment_date desc) rn 
-						                from rental r
-						          left join  payment pm
-						          on pm.rental_id = r.rental_id
-						          left join public.inventory inv 
-						          on inv.inventory_id = r.inventory_id ) l 
-				where rn = 1 ) ll -- this part of the script give us information about 
-						           -- in which store manager  worked last time
-				left join (select r.staff_id,
-				                  sum(amount) as amount
-						          from rental r
-						   left join  payment pm
-						   on pm.rental_id = r.rental_id
-						   left join public.inventory inv 
-						   on inv.inventory_id = r.inventory_id
-						   where payment_date between '01.01.2017' and '31.12.2017' 
-						   group by r.staff_id ) r   -- this part of the script give us information about how much revenue 
-						                              -- a manager generated in the stores 
-		 on r.staff_id = ll.staff_id 
-		 order by amount desc
-		 limit 3;
-
-            
-  
-   
+select lsp.staff_id,
+       lsp.store_id,
+       am.total_amount
+from latest_store_where_staff_worked lsp
+left join amount am on lsp.staff_id = am.staff_id
+where am.total_amount >= (
+    select min(total_amount)
+    from (
+        select distinct total_amount
+        from amount
+        order by total_amount desc
+        LIMIT 3
+    ) as amn
+)
+order by am.total_amount desc; 

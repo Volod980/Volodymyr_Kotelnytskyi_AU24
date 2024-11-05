@@ -1,8 +1,9 @@
 --PART 1, task 5
 -- First variant
 select ct.customer_id,
-       string_agg(title,',') as list_of_horrors,
-       sum(amount) from public.customer ct
+       string_agg(distinct title,',') as list_of_horrors,
+       sum(amount) 
+       from public.customer ct
 left join public.payment pt 
 on pt.customer_id = ct.customer_id 
 left join public.rental  r 
@@ -13,15 +14,15 @@ left join public.film f
 on f.film_id  = inv.film_id 
 left join public.film_category fc
 on fc.film_id  = f.film_id 
-left join public.category cg 
+inner join public.category cg 
 on cg.category_id = fc.category_id 
-where cg.name = 'Horror'
+where lower(cg.name) = 'horror'
 group by ct.customer_id;
 
 
 -- Second variant
 select ct.customer_id,
-       string_agg(title,',') as list_of_horrors,
+       string_agg( distinct title,',') as list_of_horrors,
        sum(amount) from public.customer ct
 left join (select customer_id,
                   amount,
@@ -46,6 +47,6 @@ left  join (select film_id,
 on fc.film_id  = f.film_id 
 inner join (select category_id
                   from public.category
-                  where name = 'Horror') cg 
+                  where lower(name) = 'horror') cg 
 on cg.category_id = fc.category_id 
 group by ct.customer_id;
