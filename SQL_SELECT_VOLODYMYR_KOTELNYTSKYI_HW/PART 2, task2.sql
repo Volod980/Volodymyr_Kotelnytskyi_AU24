@@ -8,7 +8,7 @@
                when f.rating = 'NC-17' then 'Adults only'
                end expected_age
           from film f 
-   left join  public.inventory inv
+   inner join  public.inventory inv
    on f.film_id = inv.film_id 
    inner join public.rental r 
    on inv.inventory_id = r.inventory_id 
@@ -17,7 +17,7 @@
 		                     from  ( select title,
 					            count(r.rental_id) as num_of_rent
 					            from film f 
-						    left join  public.inventory inv
+						    inner join  public.inventory inv
 					            on f.film_id = inv.film_id 
 						    inner join public.rental r 
 						    on inv.inventory_id = r.inventory_id 

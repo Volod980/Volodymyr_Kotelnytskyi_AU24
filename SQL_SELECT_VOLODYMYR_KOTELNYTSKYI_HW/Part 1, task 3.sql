@@ -9,7 +9,7 @@ select actor_id,
 								       last_name, 
 								       count(fl.film_id) as number_of_movies 
 								       from actor  ac
-								left join public.film_actor fc 
+								inner join public.film_actor fc 
 								on ac.actor_id  = fc.actor_id 
 								inner join public.film fl 
 								on fl.film_id = fc.film_id
@@ -21,7 +21,7 @@ select actor_id,
 								       last_name, 
 								       count(fl.film_id) as number_of_movies 
 								       from actor  ac
-								left join public.film_actor fc 
+								inner join public.film_actor fc 
 								on ac.actor_id  = fc.actor_id 
 								inner join public.film fl 
 								on fl.film_id = fc.film_id
@@ -41,7 +41,7 @@ select actor_id,
        last_name, 
        count(fl.film_id) as number_of_movies 
        from actor  ac
-left join (select actor_id,
+inner join (select actor_id,
                   film_id 
                   from public.film_actor) fc 
 on ac.actor_id  = fc.actor_id 
@@ -57,7 +57,7 @@ order by count(fl.film_id) desc
 								       last_name, 
 								       count(fl.film_id) as number_of_movies 
 								       from actor  ac
-								left join public.film_actor fc 
+								inner join public.film_actor fc 
 								on ac.actor_id  = fc.actor_id 
 								inner join public.film fl 
 								on fl.film_id = fc.film_id
@@ -82,7 +82,7 @@ order by count(fl.film_id) desc
 								       last_name, 
 								       count(fl.film_id) as number_of_movies 
 								       from actor  ac
-								left join public.film_actor fc 
+								inner join public.film_actor fc 
 								on ac.actor_id  = fc.actor_id 
 								inner join public.film fl 
 								on fl.film_id = fc.film_id
@@ -96,7 +96,7 @@ order by count(fl.film_id) desc
                                    first_name,
                                    last_name,
                                    nm.number_of_movies from actor ac
-                            left join number_of_movies nm
+                            inner join number_of_movies nm
                             on ac.actor_id = nm.actor_id
                             where  nm.number_of_movies >= (select * from min_number_of_movies )
                             order by nm.number_of_movies desc
