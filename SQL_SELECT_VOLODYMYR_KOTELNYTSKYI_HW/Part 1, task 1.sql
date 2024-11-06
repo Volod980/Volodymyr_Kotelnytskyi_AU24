@@ -1,7 +1,7 @@
 -- PART 1, task 1
 -- First variant
 select distinct ff.title,name from film ff
-left join (select film_id,
+inner join (select film_id,
                   category_id
                   from public.film_category) fc on ff.film_id = fc.film_id
 INNER join (select category_id,
@@ -15,7 +15,7 @@ with film_category as( select fc.film_id,
                               fc.category_id,
                               ct.name
                               from public.film_category fc
-                       left join (select category_id,
+                       inner join (select category_id,
 		                                 name
 		                                 from public.category)  ct 
 		               on ct.category_id = fc.category_id )
@@ -29,7 +29,7 @@ with film_category as( select fc.film_id,
 					   
 -- Third variant	
 select distinct ff.title,name from film ff
-left join (select film_id,
+inner join (select film_id,
                   category_id
                   from public.film_category) fc on ff.film_id = fc.film_id
 inner join (select category_id,

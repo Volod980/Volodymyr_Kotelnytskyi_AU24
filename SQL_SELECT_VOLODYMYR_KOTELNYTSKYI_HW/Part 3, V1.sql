@@ -6,7 +6,7 @@ select actor_id,
 		            concat( first_name,' ', last_name) as name,
 		            max(f.release_year) as last_year 
              from public.actor act
-             left join public.film_actor fl
+             inner join public.film_actor fl
              on fl.actor_id = act.actor_id 
              inner join film f 
              on f.film_id  = fl.film_id 

@@ -7,7 +7,7 @@
 		                               count(case when upper(name) = 'TRAVEL' then 1 end ) as number_of_travel_movies,
 		                               count(case when upper(name) = 'DOCUMENTARY' then 1 end ) as number_of_documentary_movies
 		                               from film f 
-		               left join  film_category fc  on f.film_id  = fc.film_id
+		               inner join  film_category fc  on f.film_id  = fc.film_id
 		                INNER join  public.category  ct 
 		               on ct.category_id = fc.category_id
 		              where  upper(name) in ('DRAMA','TRAVEL','DOCUMENTARY')
@@ -20,7 +20,7 @@
                               fc.category_id,
                               ct.name
                               from public.film_category fc
-                       left join public.category  ct 
+                       inner join public.category  ct 
 		               on ct.category_id = fc.category_id )
 		               
 		               

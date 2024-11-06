@@ -2,10 +2,10 @@
 -- First variant
 select concat(ad.address,' ',ad.address2) as address,
        sum(amount) as revenue from store s 
-left join  inventory i   on i.store_id  = s.store_id 
-left join  rental r  on r.inventory_id = i.inventory_id 
+inner join  inventory i   on i.store_id  = s.store_id 
+inner join  rental r  on r.inventory_id = i.inventory_id 
 inner join payment  p  on p.rental_id = r.rental_id
-left join  address ad on ad.address_id  = s.address_id 
+inner join  address ad on ad.address_id  = s.address_id 
 where  to_char(payment_date,'dd.mm.yyyy')  >= '01.03.2017' 
 group by concat(ad.address,' ',ad.address2),
          s.store_id;
@@ -14,13 +14,13 @@ group by concat(ad.address,' ',ad.address2),
  with store_with_address as (select s.store_id,
                                     s.address_id,
                                     concat(ad.address,' ',ad.address2) as address from store s 
-                             left join address ad on ad.address_id  = s.address_id)
+                             inner join address ad on ad.address_id  = s.address_id)
                   							   
 			                select s.address,
 			                       sum(amount)  from store_with_address s
-			                left join (select store_id,
+			                inner join (select store_id,
 			                                  inventory_id from inventory )i   on i.store_id  = s.store_id 
-							left join (select inventory_id,
+							inner join (select inventory_id,
 			                                   rental_id from rental) r  on r.inventory_id = i.inventory_id 
 							inner join (select rental_id, 
 							                  payment_date,
