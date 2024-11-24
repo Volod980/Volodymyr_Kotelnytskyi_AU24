@@ -120,12 +120,3 @@ alter table payment enable row level security;
    reset role; -- logging out from this role
    
    
-   
-   
-   
-   - Перевірити існуючих користувачів та їх ролі
-SELECT * FROM pg_user;
-SELECT * FROM pg_roles where rolname not in ('rentaluser', 'rental');
-
--- Подивитись надані привілеї
-SELECT * FROM information_schema.role_table_grants;
