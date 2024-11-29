@@ -36,7 +36,7 @@ where lower(l.color) = 'blue'
 and not exists (select * from subway.station s 
                   where lower(s.name) = 'obolon'
                   and  s.is_transfer = true
-                  and l.line_id = s.line_id
+                \
                   )
 union 
 select 'Teremky' as name, false as is_transfer, l.line_id 
@@ -45,7 +45,7 @@ where lower(l.color) = 'blue'
 and not exists (select * from subway.station s 
                   where lower(s.name) = 'teremky'
                   and  s.is_transfer = true
-                  and l.line_id = s.line_id
+                 
                   );
 
 
@@ -100,8 +100,8 @@ where not exists (select * from subway.employee s
                   where lower(s.first_name) = 'volodymyr'
                   and lower(s.last_name) = 'kotelnytskyi'
                   and s.date_of_birth = date_of_birth
-                  and s.position_id = position_id
-                  and s.station_id = station_id
+                  and s.position_id = (select distinct position_id from subway.position where lower(is_available) = 'y' and lower(position_name) = 'station manager' )
+                  and s.station_id = (select distinct station_id from subway.station where lower(name) = 'obolon' )
                   and s.start_date = start_date
                   and s.end_date = end_date)
 union 
@@ -117,8 +117,8 @@ where not exists (select * from subway.employee s
                   where lower(s.first_name) = 'fisun'
                   and lower(s.last_name) =  'ksenia'
                   and s.date_of_birth = date_of_birth
-                  and s.position_id = position_id
-                  and s.station_id = station_id
+                  and s.position_id =  (select distinct position_id from subway.position where lower(is_available) = 'y' and lower(position_name) = 'train driver' )
+                  and s.station_id = (select distinct station_id from subway.station where lower(name) = 'vokzalna' )
                   and s.start_date = start_date
                   and s.end_date = end_date);
               
@@ -146,9 +146,8 @@ select 'Hundai 23',
 where not exists (select * from subway.train s
                   where lower(s.model) = 'hundai 23'
                   and s.capacity = 200
-                  and s.line_id = line_id
-                  and s.datefrom = datefrom
-                  and s.is_working = is_working)
+                  and s.line_id = (select distinct line_id from subway.line where lower(color) = 'red')
+                  and lower(s.is_working) = 'y')
  union
  select 'Hundai 893/01',
  		200, 
@@ -159,9 +158,8 @@ where not exists (select * from subway.train s
 where not exists (select * from subway.train s
                   where lower(s.model) = 'hundai 893/01'
                   and s.capacity = 200
-                  and s.line_id = line_id
-                  and s.datefrom = datefrom
-                  and s.is_working = is_working);
+                  and s.line_id = (select distinct line_id from subway.line where lower(color) = 'red')
+                  and lower(s.is_working) = 'y');
                   
                 
 
@@ -245,7 +243,7 @@ select (select distinct station_id from subway.station where lower(name) = 'bere
        3000.00,
 	'Y'
 where not exists (select * from subway.station_property s
-                  where s.station_id = station_id 
+                  where s.station_id = (select distinct station_id from subway.station where lower(name) = 'beresteiska' )
                   and lower(s.facility_type) = 'loudspeaker'
                   and s.cost = 3000.00
                   and lower(s.is_available) = 'y')
@@ -256,7 +254,8 @@ select  (select distinct station_id from subway.station where lower(name) = 'ber
 	75000.00, 
 	'Y'
 where not exists (select * from subway.station_property s
-                  where lower(s.facility_type) = 'escalator'
+                  where s.station_id = (select distinct station_id from subway.station where lower(name) = 'beresteiska' )
+	          and lower(s.facility_type) = 'escalator'
                   and s.cost = 75000.00
                   and lower(s.is_available) = 'y' );
 
@@ -282,7 +281,7 @@ select (select distinct station_id from subway.station where lower(name) = 'bere
 where not exists (select * from subway.transfer s
                   where s.from_station_id = (select distinct station_id from subway.station where lower(name) = 'beresteiska' )
                   and s.to_station_id = (select distinct station_id from subway.station where lower(name) = 'vokzalna' )
-                  and s.transfer_time_in_minutes = transfer_time_in_minutes)
+                  )
 union
 
 select (select distinct station_id from subway.station where lower(name) = 'vokzalna' ) as from_station_id,
@@ -291,7 +290,7 @@ select (select distinct station_id from subway.station where lower(name) = 'vokz
 where not exists (select * from subway.transfer s
                   where s.from_station_id = (select distinct station_id from subway.station where lower(name) = 'vokzalna' )
                   and s.to_station_id = (select distinct station_id from subway.station where lower(name) = 'beresteiska' )
-                  and s.transfer_time_in_minutes = transfer_time_in_minutes);
+                  );
 
 
 
@@ -315,9 +314,9 @@ insert into subway.station_cleaning ( station_id, responsible_employee_id, day_o
        1
 where not exists (select * from subway.station_cleaning s
                   where s.station_id = (select distinct station_id from subway.station where lower(name) = 'beresteiska' )
-                  and s.responsible_employee_id = responsible_employee_id
+                  and s.responsible_employee_id = 2
                   and s.day_of_cleaning = '2023-10-23'
-                  and s.cleaning_check = cleaning_check)
+                  )
 union 
 select (select distinct station_id from subway.station where lower(name) = 'vokzalna' ) as station_id ,
        1,
@@ -325,9 +324,9 @@ select (select distinct station_id from subway.station where lower(name) = 'vokz
        1
 where not exists (select * from subway.station_cleaning s
                   where s.station_id = (select distinct station_id from subway.station where lower(name) = 'vokzalna' )
-                  and s.responsible_employee_id = responsible_employee_id
+                  and s.responsible_employee_id = 1
                   and s.day_of_cleaning = '2024-11-02'
-                  and s.cleaning_check = cleaning_check) ;
+                 ) ;
 
 
 
