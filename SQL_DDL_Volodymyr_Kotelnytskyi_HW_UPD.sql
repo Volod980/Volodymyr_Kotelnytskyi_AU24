@@ -30,18 +30,23 @@ create table if not exists  subway.station (station_id serial primary key unique
 						   
 -- add information to table "station"							    
 insert into subway.station ( name, is_transfer, line_id)
-select 'Vokzalna' as name, true as is_transfer, 1 as line_id 
-where not exists (select * from subway.station s 
-                  where s.name = name
-                  and is_transfer = s.is_transfer
-                  and line_id = s.line_id)
+select 'Obolon' as name, true as is_transfer, l.line_id 
+from subway.line l
+where l.color = 'blue'
+and not exists (select * from subway.station s 
+                  where s.name = 'Obolon'
+                  and  s.is_transfer = true
+                  and l.line_id = s.line_id
+                  )
 union 
-select 'Beresteiska' as name, false as is_transfer, 1 as line_id 
-where not exists (select * from subway.station s 
-                  where s.name = name
-                  and is_transfer = s.is_transfer
-                  and line_id = s.line_id);
-
+select 'Teremky' as name, false as is_transfer, l.line_id 
+from subway.line l
+where l.color = 'blue'
+and not exists (select * from subway.station s 
+                  where s.name = 'Teremky'
+                  and  s.is_transfer = true
+                  and l.line_id = s.line_id
+                  );
 
 
 
