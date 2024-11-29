@@ -10,13 +10,13 @@ create  table if not exists  subway.line (line_id serial  primary key unique,
  insert into subway.line  ( name, color)
  select 'Saltivska' as name, 'blue' as  color
  where not exists (select * from subway.line ll 
-					where name = ll.name 
-					and color = ll.color)
+					where lower(name) = 'saltivska'
+					and lower(color) = 'blue' )
  union
  select 'Oleksiivska' as name, 'red' as  color
  where not exists (select * from subway.line ll 
-					where name = ll.name 
-					and color = ll.color);
+					where lower(name) = 'oleksiivska'
+					and lower(color) = 'red');
 			
      
 
@@ -32,18 +32,18 @@ create table if not exists  subway.station (station_id serial primary key unique
 insert into subway.station ( name, is_transfer, line_id)
 select 'Obolon' as name, true as is_transfer, l.line_id 
 from subway.line l
-where l.color = 'blue'
+where lower(l.color) = 'blue'
 and not exists (select * from subway.station s 
-                  where s.name = 'Obolon'
+                  where lower(s.name) = 'obolon'
                   and  s.is_transfer = true
                   and l.line_id = s.line_id
                   )
 union 
 select 'Teremky' as name, false as is_transfer, l.line_id 
 from subway.line l
-where l.color = 'blue'
+where lower(l.color) = 'blue'
 and not exists (select * from subway.station s 
-                  where s.name = 'Teremky'
+                  where lower(s.name) = 'teremky'
                   and  s.is_transfer = true
                   and l.line_id = s.line_id
                   );
@@ -63,13 +63,13 @@ create table  if not exists subway.position ( position_id  serial primary key un
  insert into subway.position ( position_name, base_salary, is_available)
  select 'Station Manager' as position_name, 5000.00 as base_salary, 'Y' as is_available
  where not exists (select * from subway.position s 
-                   where s.position_name = position_name 
+                   where lower(s.position_name) = 'station manager' 
                    and s.base_salary = base_salary
                    and s.is_available = is_available)
  union 
  select 'Train Driver' as position_name, 4500.00 as base_salary, 'Y' as is_available
  where not exists (select * from subway.position s 
-                   where s.position_name = position_name 
+                   where lower(s.position_name) = 'train driver'
                    and s.base_salary = base_salary
                    and s.is_available = is_available);
  
@@ -89,11 +89,16 @@ create table if not exists  subway.employee (employee_id serial primary key uniq
 
 
 -- add information to table "employee"							 
-insert into subway.employee (first_name, last_name, date_of_birth, position_id, station_id, start_date, end_date) 							 
-select 'Volodymyr' as first_name, 'Kotelnytskyi' as  last_name,date('2003-11-26') as date_of_birth, 1 as position_id, 1 as station_id,date('2020-01-01') as start_date, date('2024-09-23') as end_date							 
+select 'Volodymyr' as first_name,
+				'Kotelnytskyi' as  last_name,
+				date('2003-11-26') as date_of_birth, 
+				(select distinct position_id from subway.position where lower(is_available) = 'y' and lower(position_name) = 'station manager' ) as position_id, 
+				(select distinct station_id from subway.station where lower(name) = 'obolon' ) as station_id,
+				date('2020-01-01') as start_date,
+				date('2024-09-23') as end_date							 
 where not exists (select * from subway.employee s
-                  where s.first_name = first_name
-                  and s.last_name =  last_name
+                  where lower(s.first_name) = 'volodymyr'
+                  and lower(s.last_name) = 'kotelnytskyi'
                   and s.date_of_birth = date_of_birth
                   and s.position_id = position_id
                   and s.station_id = station_id
@@ -101,10 +106,16 @@ where not exists (select * from subway.employee s
                   and s.end_date = end_date)
 union 
 
-select 'Fisun' as first_name, 'Ksenia' as  last_name,date('2004-12-18') as date_of_birth, 2 as position_id, 2 as station_id, date('2020-02-01') as start_date, date('2023-05-28') as end_date							 
+                 select 'Fisun' as first_name,
+                  'Ksenia' as  last_name,
+                  date('2004-12-18') as date_of_birth,
+                  (select distinct position_id from subway.position where lower(is_available) = 'y' and lower(position_name) = 'train driver' ) as position_id, 
+		 (select distinct station_id from subway.station where lower(name) = 'vokzalna' ) as station_id,
+                  date('2020-02-01') as start_date,
+                  date('2023-05-28') as end_date							 
 where not exists (select * from subway.employee s
-                  where s.first_name = first_name
-                  and s.last_name =  last_name
+                  where lower(s.first_name) = 'fisun'
+                  and lower(s.last_name) =  'ksenia'
                   and s.date_of_birth = date_of_birth
                   and s.position_id = position_id
                   and s.station_id = station_id
@@ -126,18 +137,28 @@ create table if not exists  subway.train (train_id serial primary key unique,
 						  
 -- add information to table "train"							  
 insert into subway.train ( model, capacity, line_id, datefrom, dateto, is_working) 
-select 'Hundai 23', 200, 1, date('2020-01-01'), date(null), 'Y'
+select 'Hundai 23',
+		200,
+		(select distinct line_id from subway.line where lower(color) = 'red'),
+		date('2020-01-01'),
+		date(null),
+		'Y'
 where not exists (select * from subway.train s
-                  where s.model = model
-                  and s.capacity = capacity
+                  where lower(s.model) = 'hundai 23'
+                  and s.capacity = 200
                   and s.line_id = line_id
                   and s.datefrom = datefrom
                   and s.is_working = is_working)
  union
- select 'Hundai 893/01', 200, 1, date('2020-01-01'), date(null) , 'Y'
+ select 'Hundai 893/01',
+ 		200, 
+ 		(select distinct line_id from subway.line where lower(color) = 'red'), 
+ 		date('2020-01-01'), 
+ 		date(null) ,
+ 		'Y'
 where not exists (select * from subway.train s
-                  where s.model = model
-                  and s.capacity = capacity
+                  where lower(s.model) = 'hundai 893/01'
+                  and s.capacity = 200
                   and s.line_id = line_id
                   and s.datefrom = datefrom
                   and s.is_working = is_working);
@@ -157,20 +178,23 @@ create table if not exists subway.schedule ( schedule_id serial primary key uniq
 
 -- add information to table "schedule"								  
 insert into subway.schedule ( train_id, station_id, arrival_time, day_of_week) 
-select  1, 1, time '08:00:00' , 'Monday'
-where not exists (select * from subway.schedule s
-                  where s.train_id = train_id
-                  and s.station_id = station_id
-                  and s.arrival_time = arrival_time
-                  and s.day_of_week = day_of_week)
+select  (select distinct train_id from subway.train where lower(model) = 'hundai 893/01') as train_id ,
+        (select distinct station_id from subway.station where lower(name) = 'vokzalna' ) as station_id, 
+        time '08:00:00',
+        'Monday'
+         where not exists (select * from subway.schedule s
+	                  where  s.arrival_time = '08:00:00'
+     			  and lower(s.day_of_week) = 'monday')
 union 
-select   1, 2, time '08:15:00' , 'Monday'
-where not exists (select * from subway.schedule s
-                  where s.train_id = train_id
-                  and s.station_id = station_id
-                  and s.arrival_time = arrival_time
-                  and s.day_of_week = day_of_week);
-                  
+
+	select   (select distinct train_id from subway.train where lower(model) = 'hundai 893/01') as train_id,
+	         (select distinct station_id from subway.station where lower(name) = 'vokzalna' ) as station_id,
+	         time '08:15:00' ,
+	         'Monday'
+	where not exists (select * from subway.schedule s
+	                  where  s.arrival_time = '08:15:00'
+	                  and lower(s.day_of_week) = 'monday');
+	                  
 
 
 
@@ -185,20 +209,21 @@ create table if not exists subway.incidents (incident_id serial primary key uniq
 							  
 -- add information to table "incidents"							  
 insert into subway.incidents ( station_id, incident_time, description, responsible_employee_id) 
-select 1, timestamp '2023-01-15 14:30:00' , 'Technical malfunction of the escalator', 1
+       select (select distinct station_id from subway.station where lower(name) = 'vokzalna' ) as station_id,
+       timestamp '2023-01-15 14:30:00',
+       'Technical malfunction of the escalator',
+	   1
 where not exists (select * from subway.incidents  s
-                  where s.station_id = station_id
-                  and s.incident_time = incident_time
-                  and s.description = description
-                  and s.responsible_employee_id = responsible_employee_id)
+                  where s.incident_time = '2023-01-15 14:30:00'
+                  and lower(s.description) = 'technical malfunction of the escalator')
 union 
-select  2, timestamp '2018-02-20 16:45:00', 'Loss of consciousness of the passenger', 2
+select  (select distinct station_id from subway.station where lower(name) = 'beresteiska' ) as station_id,
+	timestamp '2018-02-20 16:45:00',
+	'Loss of consciousness of the passenger',
+	2
 where not exists (select * from subway.incidents  s
-                  where s.station_id = station_id
-                  and s.incident_time = incident_time
-                  and s.description = description
-                  and s.responsible_employee_id = responsible_employee_id);
-
+                  where  s.incident_time = '2018-02-20 16:45:00'
+                  and lower(s.description) = 'loss of consciousness of the passenger') ;
 
 
 
@@ -215,20 +240,25 @@ create table if not exists subway.station_property (facility_id serial primary k
 									 
 -- add information to table "station_property"									 
 insert into subway.station_property ( station_id, facility_type, cost, is_available) 
-select 1, 'Loudspeaker', 3000.00, 'Y'
+select (select distinct station_id from subway.station where lower(name) = 'beresteiska' ) as station_id,
+       'Loudspeaker',
+       3000.00,
+	'Y'
 where not exists (select * from subway.station_property s
                   where s.station_id = station_id 
-                  and s.facility_type = facility_type
-                  and s.cost = cost
-                  and s.is_available = is_available)
+                  and lower(s.facility_type) = 'loudspeaker'
+                  and s.cost = 3000.00
+                  and lower(s.is_available) = 'y')
  
  union 
-select 1, 'Escalator', 75000.00, 'Y'
+select  (select distinct station_id from subway.station where lower(name) = 'beresteiska' ) as station_id,
+       'Escalator',
+	75000.00, 
+	'Y'
 where not exists (select * from subway.station_property s
-                  where s.station_id = station_id 
-                  and s.facility_type = facility_type
-                  and s.cost = cost
-                  and s.is_available = is_available);
+                  where lower(s.facility_type) = 'escalator'
+                  and s.cost = 75000.00
+                  and lower(s.is_available) = 'y' );
 
 
 
@@ -246,17 +276,21 @@ create table if not exists subway.transfer (transfer_id serial primary key uniqu
 
 -- add information to table "transfer"								 
 insert into subway.transfer (from_station_id, to_station_id, transfer_time_in_minutes) 
-select 1, 2, 4.5
+select (select distinct station_id from subway.station where lower(name) = 'beresteiska' ) as from_station_id,
+       (select distinct station_id from subway.station where lower(name) = 'vokzalna' ) as to_station_id,
+       4.5
 where not exists (select * from subway.transfer s
-                  where s.from_station_id = from_station_id
-                  and s.to_station_id = to_station_id
+                  where s.from_station_id = (select distinct station_id from subway.station where lower(name) = 'beresteiska' )
+                  and s.to_station_id = (select distinct station_id from subway.station where lower(name) = 'vokzalna' )
                   and s.transfer_time_in_minutes = transfer_time_in_minutes)
 union
 
-select 2, 1, 6.0
+select (select distinct station_id from subway.station where lower(name) = 'vokzalna' ) as from_station_id,
+       (select distinct station_id from subway.station where lower(name) = 'beresteiska' ) as to_station_id ,
+       6.0
 where not exists (select * from subway.transfer s
-                  where s.from_station_id = from_station_id
-                  and s.to_station_id = to_station_id
+                  where s.from_station_id = (select distinct station_id from subway.station where lower(name) = 'vokzalna' )
+                  and s.to_station_id = (select distinct station_id from subway.station where lower(name) = 'beresteiska' )
                   and s.transfer_time_in_minutes = transfer_time_in_minutes);
 
 
@@ -274,18 +308,25 @@ create table if not exists subway.station_cleaning (cleaning_id serial primary k
 									 
 -- add information to table "station_cleaning"										 
 insert into subway.station_cleaning ( station_id, responsible_employee_id, day_of_cleaning, cleaning_check) 
-select 1, 2, date '2023-10-23', 1
+  
+       select (select distinct station_id from subway.station where lower(name) = 'beresteiska' ) as station_id,
+       2,
+       date '2023-10-23',
+       1
 where not exists (select * from subway.station_cleaning s
-                  where s.station_id = station_id
+                  where s.station_id = (select distinct station_id from subway.station where lower(name) = 'beresteiska' )
                   and s.responsible_employee_id = responsible_employee_id
-                  and s.day_of_cleaning = day_of_cleaning
+                  and s.day_of_cleaning = '2023-10-23'
                   and s.cleaning_check = cleaning_check)
 union 
-select 2, 1, date '2024-11-02', 1
+select (select distinct station_id from subway.station where lower(name) = 'vokzalna' ) as station_id ,
+       1,
+       date '2024-11-02',
+       1
 where not exists (select * from subway.station_cleaning s
-                  where s.station_id = station_id
+                  where s.station_id = (select distinct station_id from subway.station where lower(name) = 'vokzalna' )
                   and s.responsible_employee_id = responsible_employee_id
-                  and s.day_of_cleaning = day_of_cleaning
+                  and s.day_of_cleaning = '2024-11-02'
                   and s.cleaning_check = cleaning_check) ;
 
 
