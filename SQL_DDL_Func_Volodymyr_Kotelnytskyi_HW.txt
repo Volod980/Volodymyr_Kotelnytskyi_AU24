@@ -15,6 +15,72 @@ this function returns empty due to the fact that it takes
 data for the last three months from the current date last_month_start := CURRENT_DATE - '3 month'::interval;,
 and the payment table has data only for 2017. In order to fix it, it is necessary
 
+New logic:
+create or replace function public.rewards_report(
+    min_monthly_purchases integer,
+    min_dollar_amount_purchased numeric
+)
+returns setof customer
+language plpgsql
+security definer
+as $function$
+declare
+    last_month_start date;
+    last_month_end date;
+    rr record;
+    tmpsql text;
+begin
+    /* Some sanity checks... */
+    if min_monthly_purchases <= 0 then
+        raise exception 'minimum monthly purchases parameter must be > 0';
+    end if;
+    if min_dollar_amount_purchased <= 0.00 then
+        raise exception 'minimum monthly dollar amount purchased parameter must be > $0.00';
+    end if;
+
+    last_month_start := to_date(
+        (select extract(year from max(payment_date)) || '-' || extract(month from max(payment_date)) || '-01'
+         from public.payment),
+        'yyyy-mm-dd'
+    );
+    last_month_end := last_day(last_month_start);
+
+    /*
+    Create a temporary storage area for Customer IDs.
+    */
+    create temporary table tmpcustomer (customer_id integer not null primary key);
+
+    /*
+    Find all customers meeting the monthly purchase requirements
+    */
+
+    tmpsql := 'insert into tmpcustomer (customer_id)
+        select p.customer_id
+        from payment as p
+        where date(p.payment_date) between ' || quote_literal(last_month_start) || ' and ' || quote_literal(last_month_end) || '
+        group by p.customer_id
+        having sum(p.amount) > ' || min_dollar_amount_purchased || '
+        and count(p.customer_id) > ' || min_monthly_purchases;
+
+    execute tmpsql;
+
+    /*
+    Output ALL customer information of matching rewardees.
+    Customize output as needed.
+    */
+    for rr in execute 'select c.* from tmpcustomer as t inner join customer as c on t.customer_id = c.customer_id' loop
+        return next rr;
+    end loop;
+
+   /* Clean up */
+   tmpSQL := 'DROP TABLE tmpCustomer';
+    EXECUTE tmpSQL;
+   
+    return;  
+end
+$function$;
+
+select * from public.rewards_report(2,3)
 -------------------3-------------------------
 In my opinion, the last_updated function is unnecessary,
  because the current date and time can be set via Default
