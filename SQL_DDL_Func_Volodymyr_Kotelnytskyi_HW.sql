@@ -2,7 +2,9 @@
 ------------------------1-----------------------------
 
 create view sales_revenue_by_category_qtr as
-select h.name, quarter|| 'Q' || ' ' || h.year as last_quarter,h.revenue as quarter_revenue ,total.revenue as year_revenue from (
+select h.name, quarter|| 'Q' || ' ' || h.year as last_quarter,h.revenue as quarter_revenue ,total.revenue as year_revenue 
+	-- Subquery to retrieve revenue by movie category for the last quarter
+	from (
 select ct.category_id,
        ct_2.name ,
        extract(quarter from pm.payment_date ) as quarter,
@@ -24,7 +26,7 @@ group by ct.category_id,
          extract(year from pm.payment_date )
 having count(payment_date) >= 1
 ) h 
-
+-- Subquery to obtain total income for the entire year
 inner join (select ct.category_id,ct_2.name ,
       -- extract(quarter from pm.payment_date ) as quarter,
        extract(year from pm.payment_date ) as year,
@@ -60,12 +62,14 @@ returns table (
 ) as $$
 begin
     return query
+	
     select 
         h.name as category_name, 
         quarter || 'q ' || h.year as last_quarter,
         h.revenue as quarter_revenue,
         total.revenue as year_revenue
     from (
+-- Subquery to receive revenue for a given quarter	
        select ct.category_id,
        ct_2.name ,
        extract(quarter from pm.payment_date ) as quarter,
@@ -87,6 +91,7 @@ group by ct.category_id,
          extract(year from pm.payment_date )
 having count(payment_date) >= 1
     ) h
+-- Subquery to obtain total income for the entire year
 inner join (select ct.category_id,
                    ct_2.name ,
       -- extract(quarter from pm.payment_date ) as quarter,
@@ -116,6 +121,7 @@ $$ language plpgsql;
 
 
 select * from get_sales_revenue_by_category_qtr(1, 2017);
+
 
 
 
@@ -165,10 +171,10 @@ inner join public.language ln
 on ln.language_id = c.language_id
 
 where 
-        m.country = any(input_country_name);
+        m.country ILIKE any(input_country_name); -- I changed "=" to "ILIKE" and it already works with "BRAZIL"
 end;
 $$ language plpgsql;
-select * from most_popular_films_by_countries(array['Anguilla','Afghanistan'])
+select * from most_popular_films_by_countries(array['AnguillA','Afghanistan'])
 
 
 
@@ -183,7 +189,7 @@ returns table(row_num numeric,
               ) as
 $$
 begin
-
+  --Checking if there are any films matching the given title
  if not exists (select * from 
                ( select title as film_title
 				            from public.film f
@@ -196,16 +202,11 @@ begin
 				        ) as check_films
 				    ) then
 
-        return query
-        select null::numeric as row_num,
-               'film not found: ' || needed_film as film_title,
-               null::text as language,
-               null::text as customer_name,
-               null::date as rental_date;
-        return;
+         raise notice 'film not found: %', needed_film;  -- now it's displayed in output
+       return;
         end if;
    
-
+  -- Performing the main query if the film is found
     return query
 
    select row_number() over (order by k.film_title) ::numeric as row_num,
@@ -259,32 +260,43 @@ returns table (
     rental_rate numeric,
     replacement_cost numeric
 ) as $$
+declare
+    new_lang_id numeric; -- variable for language_id
 begin
-  
-    if exists (select * from film f where lower(f.title) = lower(film_title)) then
-        raise notice 'The film "%s" already exists in the table.', film_title;
+    -- checking if a movie with the same title exists
+    if exists (
+        select * from film f where lower(f.title) = lower(film_title))
+        then raise notice 'the film "%s" already exists in the table.', film_title;
         return;
-    end if;
+        end if;
 
-   
-   if not exists (select * from language where lower(name) = lower(film_language)) then
-        raise exception 'Language "%s" does not exist in the language table.', film_language;
-     return;
-    end if;
+    -- checking if the language exists and get its id if it exists
+    select l.language_id into new_lang_id from language l where lower(l.name) = lower(film_language);
 
-    
+    -- if the language does not exist, insert it and get the id
+    if new_lang_id is null then
+        insert into language (language_id, name)
+        values ((select coalesce(max(l2.language_id), 0) + 1 from language l2), film_language);
+
+        raise notice 'language "%s" has been added to the language table.', film_language;
+
+        -- getting the id of the new language after inserting it
+        select l.language_id into new_lang_id from language l where lower(l.name) = lower(film_language);
+        end if;
+
+    -- inserting a new movie into the film table
     return query
     insert into film (
         film_id, title, release_year, language_id, rental_duration, rental_rate, replacement_cost
     )
     values (
-        (select coalesce(max(f.film_id), 0) + 1 from film f)::numeric, 
+        (select coalesce(max(f2.film_id), 0) + 1 from film f2),  -- generating a new id for the movie
         film_title,
         release_year_param,
-        (select ln.language_id from language ln where ln.name = film_language)::numeric, 
-        3::numeric,        
-        4.99::numeric,     
-        19.99::numeric    
+        new_lang_id,        
+        3,                  -- rental_duration
+        4.99,               -- rental_rate
+        19.99               -- replacement_cost
     )
     returning 
         film.film_id::numeric,  
