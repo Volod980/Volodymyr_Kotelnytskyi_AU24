@@ -348,3 +348,141 @@ from agency.transaction t
 where t.transaction_date = '2024-08-15'
 and not exists (select * from agency.commission c
                 where c.transaction_id = t.transaction_id);
+
+
+
+
+ -- 5.1 Function that updates data in the table "property"            
+ create or replace function agency.update_property(
+    p_property_id integer,
+    p_column_name varchar,
+    p_new_value varchar
+) returns void as $$
+begin
+    -- Checking if such a record exists
+    if not exists (select 1 from agency.property where property_id = p_property_id) then
+        raise exception 'No property found with id = %', p_property_id;
+    end if;
+
+-- part for updating
+    execute format(
+        'update agency.property set %I = %L where property_id = %s',
+        p_column_name, -- %I
+        p_new_value, -- %L 
+        p_property_id -- %s
+    );
+    
+    raise notice 'Successfully updated % in property table where property_id = %', p_column_name, p_property_id;
+end;
+$$ language plpgsql;
+
+
+--5.2 creating function that adds a new transaction
+create or replace function agency.add_new_transaction(
+   p_property_address varchar,    
+   p_seller_email varchar,      
+   p_buyer_email varchar,        
+   p_agent_phone varchar,        
+   p_sale_price decimal,         
+   p_status varchar default 'pending'  
+) returns void as $$
+declare -- Variables for storing IDs of found records
+   v_property_id int;
+   v_seller_id int;
+   v_buyer_id int;
+   v_agent_id int;
+begin
+   select property_id into strict v_property_id
+   from agency.property
+   where lower(address) = lower(p_property_address);
+   
+   select client_id into strict v_seller_id
+   from agency.client  
+   where lower(email) = lower(p_seller_email);
+   
+   select client_id into strict v_buyer_id
+   from agency.client
+   where lower(email) = lower(p_buyer_email);
+   
+   select agent_id into strict v_agent_id  
+   from agency.agent
+   where lower(phone_num) = lower(p_agent_phone);
+
+-- inserting data to the table "transaction"
+   insert into agency.transaction (
+       property_id,
+       seller_id, 
+       buyer_id,
+       agent_id,
+       sale_price,
+       status
+   )
+   select 
+       v_property_id,
+       v_seller_id,
+       v_buyer_id, 
+       v_agent_id,
+       p_sale_price,
+       p_status;
+
+   raise notice 'Transaction successfully added';
+
+   exception
+       when no_data_found then
+           raise notice 'Records not found';
+       when too_many_rows then
+           raise notice 'Multiple records found';
+end;
+$$ language plpgsql;
+
+    
+--6.Creating a view that presents analytics for the most recently added quarter
+
+create or replace  view agency.quarterly_analytics as
+with period_dates as (
+    select 
+        date_trunc('month', min(transaction_date)) as start_date,
+        date_trunc('month', max(transaction_date)) + interval '1 month' - interval '1 day' as end_date
+    from agency.transaction
+)
+select 
+    p.address,
+    p.property_type,
+    t.sale_price,
+    c.amount as commission_amount,
+    round((c.amount * 100.0 / t.sale_price), 2) as commission_percentage,
+    concat(a.first_name, ' ', a.last_name) as agent_name,
+    t.status,
+    to_char(t.transaction_date, 'Month YYYY') as transaction_month
+from agency.transaction t
+inner join agency.property p
+ on t.property_id = p.property_id
+inner join agency.agent a 
+ on t.agent_id = a.agent_id
+inner join agency.commission c 
+ on t.transaction_id = c.transaction_id
+inner join period_dates pd 
+ on t.transaction_date between pd.start_date and pd.end_date
+order by t.transaction_date;
+
+
+-- 7.
+-- Creating role "manager"
+create role manager_f with  password 'manager123'
+ 
+-- giving the access to schema
+grant usage on schema agency to manager; 
+
+-- giving the access to all tables
+grant select on all tables in schema agency to manager;
+ 
+-- giving the access to the view
+grant select on agency.quarterly_analytics to manager;
+
+-- remove access on SELECT from role "manager"
+revoke insert, update, delete, truncate 
+on all tables in schema agency 
+from manager;
+   
+  set role manager;
+  reset role;
