@@ -71,6 +71,9 @@ where not exists (select * from rental s
 
 reset role;				   
 -- 6.Create a personalized role for any customer already existing in the dvd_rental database. 
+alter table public.rental disable row level security;
+alter table public.payment disable row level security;
+
 create or replace function adding_new_role(needed_customer_id numeric)
  returns void as 
 $$
