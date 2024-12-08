@@ -71,25 +71,45 @@ where not exists (select * from rental s
 
 reset role;				   
 -- 6.Create a personalized role for any customer already existing in the dvd_rental database. 
-select * from customer where customer_id = 214 
-select * from rental where customer_id = 214  -- Checking whether the customer has records in rental table
-select * from payment where customer_id = 214 -- Checking whether the customer has records in payment table
+create or replace function adding_new_role(needed_customer_id numeric)
+ returns void as 
+$$
+declare
+     
+ v_role_name varchar;
+begin
+    
+    if not exists (select * from customer where customer_id = needed_customer_id) then
+        raise exception 'customer with id % does not exist', needed_customer_id;
+    end if;
 
+    -- Creating a role name based on the client's data
+    select lower(concat('client_', first_name, '_', last_name)) into v_role_name
+    from public.customer where customer_id = needed_customer_id;
 
-create  role client_kristin_johnston; -- creating role for the customer
+    -- check if the role already exists
+    if exists (select 1 from pg_roles where rolname = v_role_name) then
+        raise exception 'role % already exists', v_role_name;
+    end if;
 
--- Giving permissions
-grant connect on database dwhrental to client_kristin_johnston;
-grant select on rental to client_kristin_johnston;
-grant select on payment to client_kristin_johnston;
+    -- create a role and grant rights
+    execute 'create role ' || v_role_name;
+    execute 'grant connect on database dwhrental to ' || v_role_name;
+    execute 'grant select on rental to ' || v_role_name;
+    execute 'grant select on payment to ' || v_role_name;
+        
+    raise notice 'role % successfully created with "select" permission', v_role_name;
 
+end;
+$$ language plpgsql;
+
+select * from adding_new_role(214) -- adding new role
+set role client_kristin_johnston; -- set the "client_kristin_johnston" role
    
-   set role client_kristin_johnston; -- set the "client_kristin_johnston" role
-   
-   select * from rental; -- checking whether this role has opportunity to see records in rental table
-   select * from payment; -- checking whether this role has opportunity to see records in payment table
+select * from rental; -- checking whether this role has opportunity to see records in rental table
+ select * from payment; -- checking whether this role has opportunity to see records in payment table
 	
-   reset role; -- logging out from this role
+ reset role; -- logging out from this role
    
    
    
@@ -104,12 +124,12 @@ alter table payment enable row level security;
     create  policy rental_policy_214  on rental
     for select
     to client_kristin_johnston
-    using (customer_id = 214);
+    using (customer_id = (select distinct customer_id from customer where lower(email) = 'kristin.johnston@sakilacustomer.org'));
 
     create  policy rental_policy_214  on payment
     for select
     to client_kristin_johnston
-    using (customer_id = 214);
+    using (customer_id = (select distinct customer_id from customer where lower(email) = 'kristin.johnston@sakilacustomer.org'));
    
    
    set role client_kristin_johnston; -- set the "client_kristin_johnston" role
@@ -118,5 +138,6 @@ alter table payment enable row level security;
    select * from payment; -- checking whether this role has opportunity to see records in payment table
 	
    reset role; -- logging out from this role
+   
    
    
