@@ -1,0 +1,177 @@
+------------------1---------------------
+film_in_stock - the function returns a list of inventory IDs (inventory_id) that correspond to the given film (p_film_id) and store (p_store_id), if those units are in stock
+film_not_in_stock - the function returns a list of inventory IDs (inventory_id) that match the given film (p_film_id) and store (p_store_id) if those units are not in stock
+inventory_in_stock - the inventory_in_stock function checks whether the inventory unit (inventory_id) is in stock
+get_customer_balance -the function get_customer_balance calculates the current balance of a customer (p_customer_id) on a certain date (p_effective_date)
+inventory_held_by_customer -the inventory_held_by_customer function determines which customer currently holds a particular inventory item (p_inventory_id), if not returned
+rewards_report - the rewards_report function generates a report on customers who meet the specified criteria of a minimum number of purchases and total spending for the previous month
+last_day - The last_day function determines the last day of the month for a given date
+
+
+
+---------------2-----------------------
+
+this function returns empty due to the fact that it takes 
+data for the last three months from the current date last_month_start := CURRENT_DATE - '3 month'::interval;,
+and the payment table has data only for 2017. In order to fix it, it is necessary
+
+New logic:
+create or replace function public.rewards_report(
+    min_monthly_purchases integer,
+    min_dollar_amount_purchased numeric
+)
+returns setof customer
+language plpgsql
+security definer
+as $function$
+declare
+    last_month_start date;
+    last_month_end date;
+    rr record;
+    tmpsql text;
+begin
+    /* Some sanity checks... */
+    if min_monthly_purchases <= 0 then
+        raise exception 'minimum monthly purchases parameter must be > 0';
+    end if;
+    if min_dollar_amount_purchased <= 0.00 then
+        raise exception 'minimum monthly dollar amount purchased parameter must be > $0.00';
+    end if;
+
+    last_month_start := to_date(
+        (select extract(year from max(payment_date)) || '-' || extract(month from max(payment_date)) || '-01'
+         from public.payment),
+        'yyyy-mm-dd'
+    );
+    last_month_end := last_day(last_month_start);
+
+    /*
+    Create a temporary storage area for Customer IDs.
+    */
+    create temporary table tmpcustomer (customer_id integer not null primary key);
+
+    /*
+    Find all customers meeting the monthly purchase requirements
+    */
+
+    tmpsql := 'insert into tmpcustomer (customer_id)
+        select p.customer_id
+        from payment as p
+        where date(p.payment_date) between ' || quote_literal(last_month_start) || ' and ' || quote_literal(last_month_end) || '
+        group by p.customer_id
+        having sum(p.amount) > ' || min_dollar_amount_purchased || '
+        and count(p.customer_id) > ' || min_monthly_purchases;
+
+    execute tmpsql;
+
+    /*
+    Output ALL customer information of matching rewardees.
+    Customize output as needed.
+    */
+    for rr in execute 'select c.* from tmpcustomer as t inner join customer as c on t.customer_id = c.customer_id' loop
+        return next rr;
+    end loop;
+
+   /* Clean up */
+   tmpSQL := 'DROP TABLE tmpCustomer';
+    EXECUTE tmpSQL;
+   
+    return;  
+end
+$function$;
+
+select * from public.rewards_report(2,3)
+-------------------3-------------------------
+In my opinion, the last_updated function is unnecessary,
+ because the current date and time can be set via Default
+
+--------------------------4--------------------------------------
+New logic
+
+create or replace function public.get_customer_bl(p_customer_id integer, p_effective_date timestamp with time zone)
+returns numeric
+language plpgsql
+as $function$
+declare
+    v_rentfees decimal(5,2);
+    v_overfees decimal(5,2);
+    v_replacement_fees decimal(5,2);
+    v_payments decimal(5,2);
+begin
+    -- 1) rental fees for all previous rentals
+    select coalesce(sum(film.rental_rate), 0) into v_rentfees
+    from film, inventory, rental
+    where film.film_id = inventory.film_id
+    and inventory.inventory_id = rental.inventory_id
+    and rental.rental_date <= p_effective_date
+    and rental.customer_id = p_customer_id;
+
+    -- 2) one dollar for every day the previous rentals are overdue
+    select coalesce(sum(
+        case
+            when rental.return_date is null 
+                then extract(epoch from (p_effective_date - rental.rental_date))::integer / 86400
+            when rental.return_date > rental.rental_date + (film.rental_duration * '1 day'::interval)
+                then extract(epoch from (rental.return_date - (rental.rental_date + (film.rental_duration * '1 day'::interval))))::integer / 86400
+            else 0
+        end
+    ), 0) into v_overfees
+    from rental
+    join inventory on rental.inventory_id = inventory.inventory_id
+    join film on inventory.film_id = film.film_id
+    where rental.rental_date <= p_effective_date
+    and rental.customer_id = p_customer_id;
+
+    -- 3) replacement cost for films overdue more than rental_duration * 2
+    select coalesce(sum(
+        case
+            when rental.return_date is null 
+                and p_effective_date - rental.rental_date > (film.rental_duration * '2 days'::interval)
+                then film.replacement_cost
+            when rental.return_date - rental.rental_date > (film.rental_duration * '2 days'::interval)
+                then film.replacement_cost
+            else 0
+        end
+    ), 0) into v_replacement_fees
+    from rental
+    join inventory on rental.inventory_id = inventory.inventory_id
+    join film on inventory.film_id = film.film_id
+    where rental.rental_date <= p_effective_date
+    and rental.customer_id = p_customer_id;
+
+    -- 4) subtract all payments made before the date specified
+    select coalesce(sum(payment.amount), 0) into v_payments
+    from payment
+    where payment.payment_date <= p_effective_date
+    and payment.customer_id = p_customer_id;
+
+    return v_rentfees + v_overfees + v_replacement_fees - v_payments;
+end
+$function$;
+
+
+
+
+------------------------------5-------------------------------------------
+_group_concat is an intermediate function that combines two text values ​​with a comma. 
+And group_concat uses _group_concat to sequentially combine values ​​in a group
+
+-------------------------------------------------------------6------------------------------------------------------------------
+We use the last_updated function to mark the time when we made changes to the table.
+This function is used in all tables of the dvd_rental database as a default value and is an indicator of when
+a record was entered into the fbo table and changed.
+
+------------------------------------------------------------------------7------------------------------------------------------
+
+
+The tmpSQL variable in this function is used for dynamically forming SQL queries. This approach allows:
+create requests with variable values ​​(dates, amounts, number of purchases);
+perform various SQL operations within one function (creating a table, inserting data, deleting);
+modify the query based on input parameters; 
+This function can be reproduced without it and it will be better, because such disadvantages as: the risk of SQL injections will disappear;
+more complex code support;
+worse performance due to the creation of temporary tables;
+more complex optimization of PostgreSQL queries;
+
+
+
