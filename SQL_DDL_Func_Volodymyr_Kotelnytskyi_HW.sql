@@ -1,7 +1,7 @@
 
 ------------------------1-----------------------------
 
-create view sales_revenue_by_category_qtr as
+create or replace view sales_revenue_by_category_qtr as
 select h.name, quarter|| 'Q' || ' ' || h.year as last_quarter,h.revenue as quarter_revenue ,total.revenue as year_revenue 
 	-- Subquery to retrieve revenue by movie category for the last quarter
 	from (
@@ -47,13 +47,14 @@ group by ct_2.name ,
 having count(payment_date) >= 1) total
 
 on total.category_id= h.category_id
-where h.year = (select max(extract(year from payment_date )) from public.payment)
-and h.quarter = (select max(extract(quarter from payment_date )) from public.payment)
+where h.year = extract(year from current_date)
+and h.quarter = extract(quarter from current_date)
 
 
 ----------------------2----------------------------
 
-create or replace  function get_sales_revenue_by_category_qtr(input_quarter integer, input_year integer)
+create or replace  function get_sales_revenue_by_category_qtr(input_quarter integer default extract(quarter from current_date)::integer, 
+                                                              input_year integer default extract(year from current_date)::integer)
 returns table (
     category_name text,
     last_quarter text,
