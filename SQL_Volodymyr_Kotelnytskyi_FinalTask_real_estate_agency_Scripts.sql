@@ -1,16 +1,26 @@
+--CREATE DATABASE  final_task;   -- creating database
 CREATE SCHEMA if not exists agency;
 
 -- creating table "property"
-create table if not exists   agency.property (
+
+create table if not exists agency.property (
    property_id serial primary key,
-   address varchar(150) not null,
+   address varchar(150) ,
    price decimal check (price > 0),
    property_type varchar(45) not null,
    description varchar(250),
    is_sold boolean default false,
    constraint chk_price_min check (price > 0) );
-  
-  
+   
+
+
+--add check constraint to ensure price 
+
+alter table agency.property 
+alter column address set not null;
+ 
+
+ 
  -- adding data to property table 
 insert into agency.property (address, price, property_type, description)
 select 'khreshchatyk st 15', 350000, 'apartment', 'modern 2-room apartment'
@@ -55,6 +65,18 @@ create table if not exists  agency.client (
    client_type varchar(10) not null,
    activity_ind boolean default true);
 
+ 
+  alter table agency.client
+ drop constraint if exists check_client_type; 
+
+
+ --Add check constraint to client_type 
+
+alter table agency.client
+add constraint check_client_type
+check (client_type in ('buyer', 'seller', 'both'));
+
+  
  -- adding data to client table 
 insert into agency.client (first_name, last_name, email, phone, client_type)
 select 'taras', 'shevchuk', 'taras@email.com', '380501234567', 'buyer'
@@ -140,8 +162,16 @@ where not exists (select * from agency.agent
    viewing_date date default current_date,
    result_of_viewing varchar(250),
    constraint chk_viewing_date check (viewing_date >= '2024-07-01'));
-  
+
  
+
+  
+  -- Add not null constraint to result_of_viewing
+alter table agency.property_viewing
+alter column result_of_viewing set not null;
+ 
+
+
   --adding data to table "property_viewing" 
  insert into agency.property_viewing (property_id, client_id, agent_id, viewing_date, result_of_viewing)
 select p.property_id, c.client_id, a.agent_id, '2024-07-15', 'interested'
@@ -222,7 +252,17 @@ and not exists (select * from agency.property_viewing pv
    transaction_date date default current_date,
    status varchar(50) default 'pending',
    constraint chk_transaction_date check (transaction_date >= '2024-07-01'));
-   
+ 
+  
+   alter table agency.transaction
+ drop constraint if exists check_transaction_status; 
+
+--Add check constraint to transaction status  
+alter table agency.transaction
+add constraint check_transaction_status
+check (status in ('pending', 'processing', 'completed', 'cancelled'));
+ 
+  
   
   -- adding data to table "transaction"
 insert into agency.transaction (property_id, seller_id, buyer_id, agent_id, sale_price, transaction_date, status)
@@ -307,6 +347,17 @@ and not exists (select * from agency.transaction t
     amount decimal 
     constraint chk_payment_date check (payment_date >= '2024-07-01'));
   
+   
+   alter table agency.commission 
+drop constraint if exists check_commission;
+
+-- add check constraint for commission amount
+alter table agency.commission
+add constraint check_commission
+check (amount > 0);
+
+
+
 insert into agency.commission (transaction_id, agent_id, payment_date, amount)
 select t.transaction_id, t.agent_id, '2024-07-25', t.sale_price * 0.03
 from agency.transaction t
@@ -468,8 +519,10 @@ order by t.transaction_date;
 
 -- 7.
 -- Creating role "manager"
-create role manager_f with  password 'manager123'
- 
+
+drop role if exists manager;
+create role  manager with  password 'manager123';
+
 -- giving the access to schema
 grant usage on schema agency to manager; 
 
@@ -483,6 +536,9 @@ grant select on agency.quarterly_analytics to manager;
 revoke insert, update, delete, truncate 
 on all tables in schema agency 
 from manager;
-   
+revoke select on agency.quarterly_analytics from manager;
+revoke all privileges on all tables in schema agency from manager;
+revoke all privileges on schema agency from manager;
+
   set role manager;
   reset role;
