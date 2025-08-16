@@ -1,0 +1,3568 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Print Pro - Професійний 3D друк на замовлення</title>
+    <meta name="description" content="3D друк на замовлення. Готові вироби, індивідуальні проекти, 3D конструктор. Швидко, якісно, доступно.">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Modern color palette */
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --accent-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --warning-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            
+            --bg-primary: #fafbfc;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f8f9fa;
+            
+            --text-primary: #2d3748;
+            --text-secondary: #4a5568;
+            --text-muted: #718096;
+            
+            --border-light: #e2e8f0;
+            --border-medium: #cbd5e0;
+            
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
+            --shadow-lg: 0 10px 15px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05);
+            --shadow-xl: 0 20px 25px rgba(0,0,0,0.1), 0 10px 10px rgba(0,0,0,0.04);
+            
+            --radius-sm: 0.375rem;
+            --radius-md: 0.5rem;
+            --radius-lg: 0.75rem;
+            --radius-xl: 1rem;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-primary);
+            background: var(--bg-primary);
+            font-size: 16px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+        }
+
+        /* Header */
+        header {
+            background: var(--bg-secondary);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-light);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            box-shadow: var(--shadow-sm);
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-md);
+            transition: all 0.2s ease;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-primary);
+            background: var(--bg-tertiary);
+        }
+
+        .user-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary {
+            background: var(--primary-gradient);
+            color: white;
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-medium);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-tertiary);
+            transform: translateY(-1px);
+        }
+
+        .cart-btn {
+            background: var(--accent-gradient);
+            color: white;
+            position: relative;
+        }
+
+        .cart-count {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: var(--warning-gradient);
+            color: var(--text-primary);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow-md);
+        }
+
+        /* Main Content */
+        main {
+            margin-top: 80px;
+            min-height: calc(100vh - 80px);
+        }
+
+        .section {
+            display: none;
+            padding: 3rem 0;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 6rem 0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><g fill="none" fill-rule="evenodd"><g fill="%23ffffff" fill-opacity="0.1"><circle cx="7" cy="7" r="7"/></g></svg>');
+            opacity: 0.3;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            margin-bottom: 3rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-hero {
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            border-radius: var(--radius-lg);
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-xl);
+            padding: 2rem;
+            box-shadow: var(--shadow-md);
+            transition: all 0.3s ease;
+            border: 1px solid var(--border-light);
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-xl);
+        }
+
+        /* Categories */
+        .categories {
+            padding: 5rem 0;
+        }
+
+        .section-title {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .section-title h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .section-title p {
+            color: var(--text-muted);
+            font-size: 1.125rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
+        .category-card {
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .category-icon {
+            font-size: 3rem;
+            margin-bottom: 1.5rem;
+            height: 80px;
+            width: 80px;
+            border-radius: var(--radius-lg);
+            background: var(--primary-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .category-card h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }
+
+        .category-card p {
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        /* Products */
+        .products-section {
+            background: var(--bg-secondary);
+            padding: 4rem 0;
+        }
+
+        .products-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3rem;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+        }
+
+        .search-filters {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .search-box, .filter-select {
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-medium);
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
+            background: var(--bg-secondary);
+            transition: all 0.2s ease;
+            min-width: 200px;
+        }
+
+        .search-box:focus, .filter-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .product-card {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-xl);
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+            transition: all 0.3s ease;
+            border: 1px solid var(--border-light);
+        }
+
+        .product-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-xl);
+        }
+
+        .product-image {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, var(--bg-tertiary), var(--border-light));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: var(--text-muted);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .product-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .product-info {
+            padding: 1.5rem;
+        }
+
+        .product-name {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .product-price {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+        }
+
+        .product-description {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+        }
+
+        .add-to-cart {
+            width: 100%;
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            padding: 0.875rem;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .add-to-cart:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        /* Forms */
+        .form-container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .form {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-xl);
+            padding: 2.5rem;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border-light);
+        }
+
+        .form h2, .form h3 {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: var(--text-primary);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 1px solid var(--border-medium);
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
+            background: var(--bg-secondary);
+            transition: all 0.2s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group textarea {
+            height: 100px;
+            resize: vertical;
+        }
+
+        .file-upload {
+            border: 2px dashed var(--border-medium);
+            padding: 3rem 2rem;
+            text-align: center;
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: var(--bg-tertiary);
+        }
+
+        .file-upload:hover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .file-upload-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: var(--text-muted);
+        }
+
+        /* User Profile */
+        .profile-section {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-xl);
+            padding: 2.5rem;
+            margin: 2rem 0;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .profile-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .profile-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .info-card {
+            background: var(--bg-tertiary);
+            padding: 1.5rem;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-light);
+        }
+
+        .info-label {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .info-value {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* 3D Constructor */
+        .constructor-section {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-xl);
+            padding: 2rem;
+            margin: 2rem 0;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .constructor-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .constructor-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .constructor-viewport {
+            width: 100%;
+            height: 500px;
+            border: 1px solid var(--border-medium);
+            border-radius: var(--radius-lg);
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Notifications */
+        .notification {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            padding: 1rem 1.5rem;
+            border-radius: var(--radius-lg);
+            color: white;
+            font-weight: 600;
+            z-index: 3000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            max-width: 350px;
+            box-shadow: var(--shadow-xl);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: var(--success-gradient);
+        }
+
+        .notification.error {
+            background: var(--accent-gradient);
+        }
+
+        .notification.info {
+            background: var(--primary-gradient);
+        }
+
+        .notification.warning {
+            background: var(--warning-gradient);
+            color: var(--text-primary);
+        }
+
+        /* Admin Panel */
+        .admin-section {
+            display: none;
+            background: var(--bg-secondary);
+            border-radius: var(--radius-xl);
+            padding: 2rem;
+            box-shadow: var(--shadow-lg);
+            margin-bottom: 2rem;
+        }
+
+        .admin-section.active {
+            display: block;
+        }
+
+        .admin-nav {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-light);
+            padding: 1rem 0;
+            margin-bottom: 2rem;
+            border-radius: var(--radius-lg);
+        }
+
+        .admin-nav ul {
+            display: flex;
+            list-style: none;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .admin-nav a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--radius-md);
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+
+        .admin-nav a:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        /* Tables */
+        .table-container {
+            overflow-x: auto;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-light);
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table th,
+        .table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .table th {
+            background: var(--bg-tertiary);
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .table tr:hover {
+            background: var(--bg-tertiary);
+        }
+
+        /* Status badges */
+        .status {
+            padding: 0.25rem 0.75rem;
+            border-radius: var(--radius-lg);
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .status-pending {
+            background: rgba(251, 191, 36, 0.1);
+            color: #92400e;
+        }
+
+        .status-processing {
+            background: rgba(59, 130, 246, 0.1);
+            color: #1e40af;
+        }
+
+        .status-completed {
+            background: rgba(34, 197, 94, 0.1);
+            color: #166534;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .search-filters {
+                flex-direction: column;
+            }
+
+            .search-box, .filter-select {
+                min-width: auto;
+            }
+
+            .products-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .cta-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .btn-hero {
+                width: 100%;
+                max-width: 300px;
+            }
+        }
+
+        /* Loading animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Smooth scrolling */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Image upload preview */
+        .image-preview {
+            width: 100px;
+            height: 100px;
+            border-radius: var(--radius-md);
+            object-fit: cover;
+            border: 2px solid var(--border-light);
+            margin-top: 1rem;
+        }
+
+        /* Modern animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in-up {
+            animation: fadeInUp 0.6s ease forwards;
+        }
+
+        /* Export section styling */
+        .export-section {
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            text-align: center;
+            margin: 2rem 0;
+            border: 1px solid var(--border-light);
+        }
+
+        .export-btn {
+            background: var(--success-gradient);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            cursor: pointer;
+            margin: 0.5rem;
+            transition: all 0.2s ease;
+            box-shadow: var(--shadow-md);
+        }
+
+        .export-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        /* Footer */
+        footer {
+            background: var(--text-primary);
+            color: white;
+            text-align: center;
+            padding: 3rem 0;
+            margin-top: 4rem;
+        }
+
+        footer p {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <nav>
+                <div class="logo">
+                    <span>🖨️</span>
+                    3D Print Pro
+                </div>
+                <ul class="nav-links">
+                    <li><a href="#" onclick="showSection('home')">Головна</a></li>
+                    <li><a href="#" onclick="showSection('catalog')">Каталог</a></li>
+                    <li><a href="#" onclick="showSection('constructor')">3D Конструктор</a></li>
+                    <li><a href="#" onclick="showSection('custom-order')">Замовити друк</a></li>
+                    <li><a href="#" onclick="showSection('blog')">Блог</a></li>
+                    <li><a href="#" onclick="showSection('contacts')">Контакти</a></li>
+                </ul>
+                <div class="user-actions">
+                    <button class="btn cart-btn" onclick="showSection('cart')">
+                        🛒 Кошик
+                        <span class="cart-count" id="cart-count">0</span>
+                    </button>
+                    <button class="btn btn-secondary" onclick="showSection('login')" id="login-btn">Вхід</button>
+                    <button class="btn btn-primary" onclick="showSection('profile')" style="display: none;" id="profile-btn">Профіль</button>
+                    <button class="btn btn-secondary" onclick="showSection('admin')" style="display: none;" id="admin-btn">Адмін</button>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <!-- Home Section -->
+        <section id="home" class="section active">
+            <div class="hero">
+                <div class="container">
+                    <div class="hero-content fade-in-up">
+                        <h1>Професійний 3D друк майбутнього</h1>
+                        <p>Створюємо унікальні вироби з високоякісних матеріалів. Від ідеї до готового продукту з власним 3D конструктором.</p>
+                        <div class="cta-buttons">
+                            <button class="btn btn-primary btn-hero" onclick="showSection('catalog')">Переглянути каталог</button>
+                            <button class="btn btn-secondary btn-hero" onclick="showSection('constructor')">3D Конструктор</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="container">
+                <div class="categories">
+                    <div class="section-title">
+                        <h2>Категорії товарів</h2>
+                        <p>Обирайте з широкого асортименту або створюйте власні 3D моделі</p>
+                    </div>
+                    <div class="category-grid">
+                        <div class="card category-card" onclick="filterByCategory('toys')">
+                            <div class="category-icon">🧸</div>
+                            <h3>Іграшки</h3>
+                            <p>Розвиваючі іграшки, фігурки, конструктори для дітей різного віку</p>
+                        </div>
+                        <div class="card category-card" onclick="filterByCategory('decor')">
+                            <div class="category-icon">🏺</div>
+                            <h3>Декор</h3>
+                            <p>Вази, статуетки, настінний декор для сучасного інтер'єру</p>
+                        </div>
+                        <div class="card category-card" onclick="filterByCategory('parts')">
+                            <div class="category-icon">⚙️</div>
+                            <h3>Запчастини</h3>
+                            <p>Функціональні деталі, кріплення, технічні компоненти</p>
+                        </div>
+                        <div class="card category-card" onclick="filterByCategory('medical')">
+                            <div class="category-icon">🦴</div>
+                            <h3>Медичні моделі</h3>
+                            <p>Анатомічні моделі, навчальні матеріали для медицини</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Catalog Section -->
+        <section id="catalog" class="section">
+            <div class="container">
+                <div class="section-title">
+                    <h2>Каталог товарів</h2>
+                    <p>Готові вироби високої якості з різних матеріалів</p>
+                </div>
+                
+                <div class="products-header">
+                    <div class="search-filters">
+                        <input type="text" class="search-box" placeholder="Пошук товарів..." id="search-input">
+                        <select class="filter-select" id="category-filter">
+                            <option value="">Всі категорії</option>
+                            <option value="toys">Іграшки</option>
+                            <option value="decor">Декор</option>
+                            <option value="parts">Запчастини</option>
+                            <option value="medical">Медичні моделі</option>
+                        </select>
+                        <select class="filter-select" id="material-filter">
+                            <option value="">Всі матеріали</option>
+                            <option value="PLA">PLA</option>
+                            <option value="PETG">PETG</option>
+                            <option value="ABS">ABS</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="products-grid" id="products-grid">
+                    <!-- Products will be loaded here -->
+                </div>
+            </div>
+        </section>
+
+        <!-- 3D Constructor Section -->
+      <!-- Enhanced 3D Constructor Section -->
+        <section id="constructor" class="section">
+            <div class="container">
+                <div class="section-title">
+                    <h2>3D Конструктор</h2>
+                    <p>Створюйте власні 3D моделі онлайн та замовляйте їх друк</p>
+                </div>
+
+                <div class="constructor-section">
+                    <div class="constructor-header">
+                        <h3>Професійний 3D редактор</h3>
+                        <p>Створіть свою модель та завантажте у форматі STL</p>
+                    </div>
+
+                    <!-- Enhanced Controls Panel -->
+                    <div style="display: grid; grid-template-columns: 1fr 3fr 1fr; gap: 2rem; margin-bottom: 2rem;">
+                        
+                        <!-- Left Panel - Shapes -->
+                        <div class="card" style="padding: 1.5rem;">
+                            <h4 style="margin-bottom: 1rem;">➕ Додати об'єкти</h4>
+                            <div style="display: grid; gap: 0.5rem;">
+                                <button class="btn btn-primary" onclick="addShape('cube')" style="justify-content: flex-start;">🟦 Куб</button>
+                                <button class="btn btn-primary" onclick="addShape('sphere')" style="justify-content: flex-start;">🔵 Сфера</button>
+                                <button class="btn btn-primary" onclick="addShape('cylinder')" style="justify-content: flex-start;">🥫 Циліндр</button>
+                                <button class="btn btn-primary" onclick="addShape('cone')" style="justify-content: flex-start;">🔺 Конус</button>
+                                <button class="btn btn-primary" onclick="addShape('torus')" style="justify-content: flex-start;">🍩 Тор</button>
+                                <button class="btn btn-primary" onclick="addShape('pyramid')" style="justify-content: flex-start;">📐 Піраміда</button>
+                            </div>
+                            
+                            <hr style="margin: 1.5rem 0; border: none; border-top: 1px solid var(--border-light);">
+                            
+                            <h4 style="margin-bottom: 1rem;">🎨 Колір</h4>
+                            <input type="color" id="shape-color" value="#667eea" style="width: 100%; height: 40px; border: none; border-radius: var(--radius-md); cursor: pointer;">
+                            
+                            <hr style="margin: 1.5rem 0; border: none; border-top: 1px solid var(--border-light);">
+                            
+                            <h4 style="margin-bottom: 1rem;">🗑️ Управління</h4>
+                            <button class="btn btn-secondary" onclick="deleteSelected()" style="width: 100%; margin-bottom: 0.5rem;">Видалити обраний</button>
+                            <button class="btn btn-secondary" onclick="clearScene()" style="width: 100%;">Очистити все</button>
+                        </div>
+
+                        <!-- Center Panel - 3D Viewport -->
+                        <div class="constructor-viewport" id="constructor-viewport" style="position: relative;">
+                            <div id="viewport-loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #666; z-index: 10;">
+                                <div style="font-size: 3rem; margin-bottom: 1rem;">🎯</div>
+                                <div>3D Конструктор завантажується...</div>
+                                <div style="font-size: 0.875rem; margin-top: 0.5rem;">Зачекайте кілька секунд</div>
+                                <div class="loading" style="margin: 1rem auto;"></div>
+                            </div>
+                            
+                            <!-- 3D Scene will be inserted here -->
+                            <div id="scene-container" style="width: 100%; height: 100%;"></div>
+                            
+                            <!-- Overlay Controls -->
+                            <div style="position: absolute; top: 10px; left: 10px; z-index: 100;">
+                                <div style="background: rgba(255,255,255,0.9); padding: 0.5rem; border-radius: var(--radius-md); font-size: 0.75rem;">
+                                    <div><strong>Управління:</strong></div>
+                                    <div>🖱️ ЛКМ - обертання</div>
+                                    <div>🔄 Колесо - масштаб</div>
+                                    <div>🖱️ ПКМ - переміщення</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Object Counter -->
+                            <div style="position: absolute; top: 10px; right: 10px; z-index: 100;">
+                                <div style="background: rgba(0,0,0,0.7); color: white; padding: 0.5rem 1rem; border-radius: var(--radius-md); font-size: 0.875rem;">
+                                    Об'єктів: <span id="object-count">0</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Panel - Properties -->
+                        <div class="card" style="padding: 1.5rem;">
+                            <h4 style="margin-bottom: 1rem;">⚙️ Властивості</h4>
+                            
+                            <div id="object-properties" style="display: none;">
+                                <div class="form-group" style="margin-bottom: 1rem;">
+                                    <label style="font-size: 0.875rem; margin-bottom: 0.5rem;">Розмір</label>
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.25rem;">
+                                        <input type="number" id="scale-x" placeholder="X" style="padding: 0.5rem; font-size: 0.75rem;" onchange="updateObjectScale()">
+                                        <input type="number" id="scale-y" placeholder="Y" style="padding: 0.5rem; font-size: 0.75rem;" onchange="updateObjectScale()">
+                                        <input type="number" id="scale-z" placeholder="Z" style="padding: 0.5rem; font-size: 0.75rem;" onchange="updateObjectScale()">
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group" style="margin-bottom: 1rem;">
+                                    <label style="font-size: 0.875rem; margin-bottom: 0.5rem;">Позиція</label>
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.25rem;">
+                                        <input type="number" id="pos-x" placeholder="X" style="padding: 0.5rem; font-size: 0.75rem;" onchange="updateObjectPosition()">
+                                        <input type="number" id="pos-y" placeholder="Y" style="padding: 0.5rem; font-size: 0.75rem;" onchange="updateObjectPosition()">
+                                        <input type="number" id="pos-z" placeholder="Z" style="padding: 0.5rem; font-size: 0.75rem;" onchange="updateObjectPosition()">
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group" style="margin-bottom: 1rem;">
+                                    <label style="font-size: 0.875rem; margin-bottom: 0.5rem;">Обертання</label>
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.25rem;">
+                                        <input type="number" id="rot-x" placeholder="X°" style="padding: 0.5rem; font-size: 0.75rem;" onchange="updateObjectRotation()">
+                                        <input type="number" id="rot-y" placeholder="Y°" style="padding: 0.5rem; font-size: 0.75rem;" onchange="updateObjectRotation()">
+                                        <input type="number" id="rot-z" placeholder="Z°" style="padding: 0.5rem; font-size: 0.75rem;" onchange="updateObjectRotation()">
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label style="font-size: 0.875rem; margin-bottom: 0.5rem;">Колір об'єкта</label>
+                                    <input type="color" id="object-color" style="width: 100%; height: 35px; border: none; border-radius: var(--radius-md);" onchange="updateObjectColor()">
+                                </div>
+                            </div>
+                            
+                            <div id="no-selection" style="text-align: center; color: var(--text-muted); padding: 2rem 0;">
+                                <div style="font-size: 2rem; margin-bottom: 0.5rem;">🎯</div>
+                                <div style="font-size: 0.875rem;">Оберіть об'єкт для редагування</div>
+                            </div>
+                            
+                            <hr style="margin: 1.5rem 0; border: none; border-top: 1px solid var(--border-light);">
+                            
+                            <h4 style="margin-bottom: 1rem;">💾 Експорт</h4>
+                            <button class="btn btn-secondary" onclick="exportSTL()" style="width: 100%; margin-bottom: 0.5rem;">📥 Завантажити STL</button>
+                            <button class="btn btn-primary" onclick="orderCurrentModel()" style="width: 100%;">🛒 Замовити друк</button>
+                        </div>
+                    </div>
+
+                    <!-- Objects List -->
+                    <div class="card" style="padding: 1.5rem;">
+                        <h4 style="margin-bottom: 1rem;">📋 Список об'єктів</h4>
+                        <div id="objects-list" style="max-height: 200px; overflow-y: auto;">
+                            <p style="text-align: center; color: var(--text-muted); padding: 2rem;">Створіть перший об'єкт</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Instructions -->
+                    <div class="form-group" style="margin-top: 2rem;">
+                        <div style="background: var(--bg-tertiary); padding: 1.5rem; border-radius: var(--radius-md); font-size: 0.875rem;">
+                            <h4 style="margin-bottom: 1rem;">📖 Інструкції по використанню:</h4>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem;">
+                                <div>
+                                    <p><strong>🎯 Навігація:</strong></p>
+                                    <p>• Ліва кнопка миші - обертання камери</p>
+                                    <p>• Права кнопка миші - переміщення камери</p>
+                                    <p>• Колесо миші - наближення/віддалення</p>
+                                </div>
+                                <div>
+                                    <p><strong>➕ Створення:</strong></p>
+                                    <p>• Оберіть колір і додайте об'єкт</p>
+                                    <p>• Клікніть на об'єкт для вибору</p>
+                                    <p>• Редагуйте властивості в правій панелі</p>
+                                </div>
+                                <div>
+                                    <p><strong>💾 Експорт:</strong></p>
+                                    <p>• STL файл для 3D друку</p>
+                                    <p>• Або одразу замовте друк моделі</p>
+                                    <p>• Підтримка всіх основних слайсерів</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Cart Section -->
+        <section id="cart" class="section">
+            <div class="container">
+                <div class="section-title">
+                    <h2>Кошик</h2>
+                    <p>Перевірте ваші товари перед оформленням замовлення</p>
+                </div>
+                
+                <div class="card" id="cart-items">
+                    <p style="text-align: center; color: var(--text-muted);">Ваш кошик порожній</p>
+                </div>
+                
+                <div class="form-container" id="checkout-form" style="display: none;">
+                    <div class="form">
+                        <h3>Оформлення замовлення</h3>
+                        <div class="form-group">
+                            <label>Ім'я *</label>
+                            <input type="text" id="customer-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Email *</label>
+                            <input type="email" id="customer-email" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Телефон *</label>
+                            <input type="tel" id="customer-phone" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Спосіб доставки</label>
+                            <select id="delivery-method">
+                                <option value="nova-poshta">Нова пошта</option>
+                                <option value="ukrposhta">Укрпошта</option>
+                                <option value="pickup">Самовивіз</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Адреса доставки *</label>
+                            <input type="text" id="delivery-address" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Спосіб оплати</label>
+                            <select id="payment-method">
+                                <option value="cash">При отриманні</option>
+                                <option value="card">Картою онлайн</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary" style="width: 100%;" onclick="submitOrder()">Підтвердити замовлення</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Custom Order Section -->
+        <section id="custom-order" class="section">
+            <div class="container">
+                <div class="section-title">
+                    <h2>Замовити індивідуальний друк</h2>
+                    <p>Завантажте свій STL файл або створіть модель у нашому 3D конструкторі</p>
+                </div>
+                
+                <div class="form-container">
+                    <div class="form">
+                        <div class="form-group">
+                            <label>Ім'я *</label>
+                            <input type="text" id="custom-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Email *</label>
+                            <input type="email" id="custom-email" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Телефон *</label>
+                            <input type="tel" id="custom-phone" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Завантажити STL/3MF файл</label>
+                            <div class="file-upload" onclick="document.getElementById('stl-file').click()">
+                                <div class="file-upload-icon">📁</div>
+                                <p><strong>Клікніть для вибору файлу</strong></p>
+                                <p style="font-size: 0.875rem; color: var(--text-muted); margin-top: 0.5rem;">
+                                    Підтримуються формати: STL, 3MF
+                                </p>
+                                <input type="file" id="stl-file" accept=".stl,.3mf" style="display: none;" onchange="handleFileSelect(this)">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Матеріал</label>
+                            <select id="custom-material">
+                                <option value="PLA">PLA (найпопулярніший)</option>
+                                <option value="PETG">PETG (міцний)</option>
+                                <option value="ABS">ABS (термостійкий)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Колір</label>
+                            <select id="custom-color">
+                                <option value="white">Білий</option>
+                                <option value="black">Чорний</option>
+                                <option value="red">Червоний</option>
+                                <option value="blue">Синій</option>
+                                <option value="green">Зелений</option>
+                                <option value="yellow">Жовтий</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Орієнтовні розміри (см)</label>
+                            <input type="text" id="custom-size" placeholder="наприклад: 10x8x5">
+                        </div>
+                        <div class="form-group">
+                            <label>Коментар</label>
+                            <textarea id="custom-comment" placeholder="Додаткові побажання, особливості друку..."></textarea>
+                        </div>
+                        <button class="btn btn-primary" style="width: 100%;" onclick="submitCustomOrder()">Надіслати заявку</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Login Section -->
+        <section id="login" class="section">
+            <div class="container">
+                <div class="section-title">
+                    <h2>Вхід в систему</h2>
+                    <p>Увійдіть у свій особистий кабінет</p>
+                </div>
+                
+                <div class="form-container">
+                    <div class="form">
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" id="login-email" placeholder="ваш.email@example.com">
+                        </div>
+                        <div class="form-group">
+                            <label>Пароль</label>
+                            <input type="password" id="login-password" placeholder="Введіть пароль">
+                        </div>
+                        <button class="btn btn-primary" style="width: 100%; margin-bottom: 1rem;" onclick="login()">Увійти</button>
+                        <button class="btn btn-secondary" style="width: 100%;" onclick="showSection('register')">Ще не маєте акаунт? Зареєструватися</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Register Section -->
+        <section id="register" class="section">
+            <div class="container">
+                <div class="section-title">
+                    <h2>Реєстрація</h2>
+                    <p>Створіть особистий кабінет для зручних покупок</p>
+                </div>
+                
+                <div class="form-container">
+                    <div class="form">
+                        <div class="form-group">
+                            <label>Повне ім'я *</label>
+                            <input type="text" id="register-name" placeholder="Іван Іванов">
+                        </div>
+                        <div class="form-group">
+                            <label>Email *</label>
+                            <input type="email" id="register-email" placeholder="ваш.email@example.com">
+                        </div>
+                        <div class="form-group">
+                            <label>Телефон</label>
+                            <input type="tel" id="register-phone" placeholder="+380 XX XXX XX XX">
+                        </div>
+                        <div class="form-group">
+                            <label>Пароль *</label>
+                            <input type="password" id="register-password" placeholder="Мінімум 6 символів">
+                        </div>
+                        <button class="btn btn-primary" style="width: 100%; margin-bottom: 1rem;" onclick="register()">Зареєструватися</button>
+                        <button class="btn btn-secondary" style="width: 100%;" onclick="showSection('login')">Вже маєте акаунт? Увійти</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Profile Section -->
+        <section id="profile" class="section">
+            <div class="container">
+                <div class="section-title">
+                    <h2>Особистий кабінет</h2>
+                    <p>Управління профілем та історією замовлень</p>
+                </div>
+
+                <div class="profile-section">
+                    <div class="profile-header">
+                        <h3>Мій профіль</h3>
+                        <div>
+                            <button class="btn btn-secondary" onclick="editProfile()">✏️ Редагувати</button>
+                            <button class="btn btn-secondary" onclick="logout()">🚪 Вийти</button>
+                        </div>
+                    </div>
+
+                    <div class="profile-info" id="profile-info">
+                        <!-- Profile info will be loaded here -->
+                    </div>
+
+                    <div class="form" id="edit-profile-form" style="display: none;">
+                        <h3>Редагування профілю</h3>
+                        <div class="form-group">
+                            <label>Ім'я</label>
+                            <input type="text" id="edit-name">
+                        </div>
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" id="edit-email">
+                        </div>
+                        <div class="form-group">
+                            <label>Телефон</label>
+                            <input type="tel" id="edit-phone">
+                        </div>
+                        <div style="display: flex; gap: 1rem;">
+                            <button class="btn btn-primary" onclick="saveProfile()">Зберегти</button>
+                            <button class="btn btn-secondary" onclick="cancelEdit()">Скасувати</button>
+                        </div>
+                    </div>
+
+                    <h3 style="margin: 2rem 0 1rem 0;">Історія замовлень</h3>
+                    <div id="user-orders">
+                        <p style="text-align: center; color: var(--text-muted);">У вас поки немає замовлень</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Admin Section -->
+        <section id="admin" class="section">
+            <div class="container">
+                <div class="section-title">
+                    <h2>Адміністративна панель</h2>
+                    <p>Управління сайтом та замовленнями</p>
+                </div>
+
+                <div class="admin-nav">
+                    <div class="container">
+                        <ul>
+                            <li><a href="#" onclick="showAdminSection('products')">Товари</a></li>
+                            <li><a href="#" onclick="showAdminSection('orders')">Замовлення</a></li>
+                            <li><a href="#" onclick="showAdminSection('custom-orders')">Індивідуальні замовлення</a></li>
+                            <li><a href="#" onclick="showAdminSection('users')">Користувачі</a></li>
+                            <li><a href="#" onclick="showAdminSection('messages')">Повідомлення</a></li>
+                            <li><a href="#" onclick="showAdminSection('data')">Управління даними</a></li>
+                            <li><a href="#" onclick="showAdminSection('analytics')">Аналітика</a></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div id="admin-products" class="admin-section active">
+                    <h3>Управління товарами</h3>
+                    <button class="btn btn-primary" onclick="showAddProductForm()" style="margin-bottom: 2rem;">➕ Додати товар</button>
+                    <div class="table-container" id="products-table"></div>
+                </div>
+
+                <div id="admin-orders" class="admin-section">
+                    <h3>Замовлення</h3>
+                    <div class="export-section">
+                        <button class="export-btn" onclick="exportToExcel('orders')">📊 Експорт в Excel</button>
+                    </div>
+                    <div class="table-container" id="orders-table"></div>
+                </div>
+
+                <div id="admin-custom-orders" class="admin-section">
+                    <h3>Індивідуальні замовлення</h3>
+                    <div class="export-section">
+                        <button class="export-btn" onclick="exportToExcel('customOrders')">📊 Експорт в Excel</button>
+                    </div>
+                    <div class="table-container" id="custom-orders-table"></div>
+                </div>
+
+                <div id="admin-users" class="admin-section">
+                    <h3>Зареєстровані користувачі</h3>
+                    <div class="export-section">
+                        <button class="export-btn" onclick="exportToExcel('users')">📊 Експорт в Excel</button>
+                    </div>
+                    <div class="table-container" id="users-table"></div>
+                </div>
+
+                <div id="admin-messages" class="admin-section">
+                    <h3>Повідомлення з форми зв'язку</h3>
+                    <div class="export-section">
+                        <button class="export-btn" onclick="exportToExcel('messages')">📊 Експорт в Excel</button>
+                    </div>
+                    <div class="table-container" id="messages-table"></div>
+                </div>
+
+                <div id="admin-data" class="admin-section">
+                    <h3>Управління даними</h3>
+                    <div class="export-section">
+                        <h4>Експорт всіх даних</h4>
+                        <p>Завантажити всі дані сайту в Excel файли:</p>
+                        <button class="export-btn" onclick="exportToExcel('orders')">📊 Замовлення</button>
+                        <button class="export-btn" onclick="exportToExcel('customOrders')">📊 Індивідуальні замовлення</button>
+                        <button class="export-btn" onclick="exportToExcel('users')">📊 Користувачі</button>
+                        <button class="export-btn" onclick="exportToExcel('messages')">📊 Повідомлення</button>
+                        <button class="export-btn" onclick="exportAllData()">📊 Все разом</button>
+                        
+                        <hr style="margin: 2rem 0; border: none; border-top: 1px solid var(--border-light);">
+                        
+                        <h4>Очистити дані</h4>
+                        <p style="color: #dc3545;">Увага! Ця дія незворотна!</p>
+                        <button class="btn" style="background: #dc3545; color: white;" onclick="clearAllData()">🗑️ Очистити всі дані</button>
+                        
+                        <hr style="margin: 2rem 0; border: none; border-top: 1px solid var(--border-light);">
+                        
+                        <h4>Статистика збереження</h4>
+                        <p style="font-size: 0.875rem; color: var(--text-muted);">ℹ️ Дані зберігаються локально в браузері</p>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                            <div class="info-card">
+                                <div class="info-label">Замовлень</div>
+                                <div class="info-value" id="stat-orders">0</div>
+                            </div>
+                            <div class="info-card">
+                                <div class="info-label">Індивідуальних</div>
+                                <div class="info-value" id="stat-custom">0</div>
+                            </div>
+                            <div class="info-card">
+                                <div class="info-label">Користувачів</div>
+                                <div class="info-value" id="stat-users">0</div>
+                            </div>
+                            <div class="info-card">
+                                <div class="info-label">Повідомлень</div>
+                                <div class="info-value" id="stat-messages">0</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="admin-analytics" class="admin-section">
+                    <h3>Аналітика</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem; margin-bottom: 2rem;">
+                        <div class="card" style="text-align: center;">
+                            <h4>Всього замовлень</h4>
+                            <div style="font-size: 2.5rem; font-weight: 700; background: var(--primary-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;" id="total-orders">0</div>
+                        </div>
+                        <div class="card" style="text-align: center;">
+                            <h4>Загальна сума</h4>
+                            <div style="font-size: 2.5rem; font-weight: 700; background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;" id="total-revenue">0 ₴</div>
+                        </div>
+                        <div class="card" style="text-align: center;">
+                            <h4>Активних товарів</h4>
+                            <div style="font-size: 2.5rem; font-weight: 700; background: var(--success-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;" id="total-products">0</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Blog Section -->
+        <section id="blog" class="section">
+            <div class="container">
+                <div class="section-title">
+                    <h2>Блог</h2>
+                    <p>Корисні статті про 3D друк та технології</p>
+                </div>
+                
+                <div class="category-grid">
+                    <div class="card">
+                        <div style="height: 200px; background: var(--primary-gradient); border-radius: var(--radius-lg) var(--radius-lg) 0 0; display: flex; align-items: center; justify-content: center; font-size: 3rem;">📚</div>
+                        <div style="padding: 1.5rem;">
+                            <h3>Як доглядати за 3D виробами</h3>
+                            <p style="color: var(--text-muted); margin: 1rem 0;">Корисні поради по догляду за виробами з різних матеріалів для довготривалого використання...</p>
+                            <button class="btn btn-secondary">Читати далі</button>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div style="height: 200px; background: var(--accent-gradient); border-radius: var(--radius-lg) var(--radius-lg) 0 0; display: flex; align-items: center; justify-content: center; font-size: 3rem;">🔬</div>
+                        <div style="padding: 1.5rem;">
+                            <h3>Нові матеріали для друку</h3>
+                            <p style="color: var(--text-muted); margin: 1rem 0;">Огляд сучасних матеріалів та їх властивостей. Що обрати для вашого проекту...</p>
+                            <button class="btn btn-secondary">Читати далі</button>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div style="height: 200px; background: var(--success-gradient); border-radius: var(--radius-lg) var(--radius-lg) 0 0; display: flex; align-items: center; justify-content: center; font-size: 3rem;">🏆</div>
+                        <div style="padding: 1.5rem;">
+                            <h3>Кейси успішних проектів</h3>
+                            <p style="color: var(--text-muted); margin: 1rem 0;">Приклади реалізованих проектів та відгуки наших клієнтів про якість роботи...</p>
+                            <button class="btn btn-secondary">Читати далі</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contacts Section -->
+        <section id="contacts" class="section">
+            <div class="container">
+                <div class="section-title">
+                    <h2>Контакти</h2>
+                    <p>Зв'яжіться з нами будь-яким зручним способом</p>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; margin-top: 3rem;">
+                    <div class="card">
+                        <h3 style="margin-bottom: 2rem;">Наші контакти</h3>
+                        <div style="space-y: 1rem;">
+                            <p><strong>📞 Телефон:</strong> +380 XX XXX XX XX</p>
+                            <p><strong>📧 Email:</strong> info@3dprintpro.ua</p>
+                            <p><strong>📍 Адреса:</strong> м. Київ, вул. Прикладна, 1</p>
+                            <p><strong>⏰ Робочий час:</strong> Пн-Пт 9:00-18:00</p>
+                            <p><strong>🚚 Доставка:</strong> По всій Україні</p>
+                        </div>
+                    </div>
+                    <div class="form">
+                        <h3>Написати нам</h3>
+                        <div class="form-group">
+                            <label>Ім'я *</label>
+                            <input type="text" id="contact-name" placeholder="Ваше ім'я">
+                        </div>
+                        <div class="form-group">
+                            <label>Email *</label>
+                            <input type="email" id="contact-email" placeholder="ваш.email@example.com">
+                        </div>
+                        <div class="form-group">
+                            <label>Повідомлення *</label>
+                            <textarea id="contact-message" placeholder="Ваше повідомлення..."></textarea>
+                        </div>
+                        <button class="btn btn-primary" style="width: 100%;" onclick="sendMessage()">Надіслати повідомлення</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal for add product -->
+    <div id="add-product-modal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000;">
+        <div style="background: var(--bg-secondary); margin: 5% auto; padding: 2rem; border-radius: var(--radius-xl); max-width: 500px; position: relative;">
+            <span style="position: absolute; top: 1rem; right: 1.5rem; font-size: 1.5rem; cursor: pointer; color: var(--text-muted);" onclick="closeAddProductModal()">&times;</span>
+            <h3 style="margin-bottom: 2rem;">Додати новий товар</h3>
+            <div class="form">
+                <div class="form-group">
+                    <label>Назва *</label>
+                    <input type="text" id="new-product-name">
+                </div>
+                <div class="form-group">
+                    <label>Ціна (₴) *</label>
+                    <input type="number" id="new-product-price">
+                </div>
+                <div class="form-group">
+                    <label>Категорія</label>
+                    <select id="new-product-category">
+                        <option value="toys">Іграшки</option>
+                        <option value="decor">Декор</option>
+                        <option value="parts">Запчастини</option>
+                        <option value="medical">Медичні моделі</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Матеріал</label>
+                    <select id="new-product-material">
+                        <option value="PLA">PLA</option>
+                        <option value="PETG">PETG</option>
+                        <option value="ABS">ABS</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Фото товару</label>
+                    <div class="file-upload" onclick="document.getElementById('product-image').click()">
+                        <div class="file-upload-icon">🖼️</div>
+                        <p>Клікніть для вибору зображення</p>
+                        <input type="file" id="product-image" accept="image/*" style="display: none;" onchange="previewImage(this)">
+                    </div>
+                    <img id="image-preview" class="image-preview" style="display: none;">
+                </div>
+                <div class="form-group">
+                    <label>Опис</label>
+                    <textarea id="new-product-description" placeholder="Опис товару..."></textarea>
+                </div>
+                <button class="btn btn-primary" style="width: 100%;" onclick="addProduct()">Додати товар</button>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 3D Print Pro. Всі права захищені. Створено з ❤️ для майбутнього 3D друку.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Application state - Enhanced with better data management
+        let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+        let isAdmin = currentUser?.role === 'admin';
+        let cart = JSON.parse(localStorage.getItem('cart') || '[]');
+        let registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+        let products = JSON.parse(localStorage.getItem('products') || JSON.stringify([
+            {
+                id: 1,
+                name: "Дракон-фігурка",
+                price: 150,
+                category: "toys",
+                material: "PLA",
+                description: "Детальна фігурка дракона висотою 15 см з високою деталізацією",
+                image: "🐉",
+                imageUrl: null
+            },
+            {
+                id: 2,
+                name: "Ваза для квітів",
+                price: 200,
+                category: "decor",
+                material: "PETG",
+                description: "Елегантна ваза висотою 20 см для домашнього декору",
+                image: "🏺",
+                imageUrl: null
+            },
+            {
+                id: 3,
+                name: "Кріплення для телефону",
+                price: 75,
+                category: "parts",
+                material: "ABS",
+                description: "Універсальне кріплення для смартфона на стіл",
+                image: "📱",
+                imageUrl: null
+            },
+            {
+                id: 4,
+                name: "Модель серця",
+                price: 300,
+                category: "medical",
+                material: "PLA",
+                description: "Анатомічна модель серця для навчання та освіти",
+                image: "❤️",
+                imageUrl: null
+            }
+        ]));
+        let orders = JSON.parse(localStorage.getItem('orders') || '[]');
+        let customOrders = JSON.parse(localStorage.getItem('customOrders') || '[]');
+        let contactMessages = JSON.parse(localStorage.getItem('contactMessages') || '[]');
+
+        // 3D Constructor variables
+        let scene, camera, renderer, controls;
+        let constructorObjects = [];
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadProducts();
+            updateCartCount();
+            updateUI();
+            init3DConstructor();
+            
+            // Welcome notification
+            setTimeout(() => {
+                showNotification('Ласкаво просимо на 3D Print Pro! 🖨️', 'info');
+            }, 1000);
+        });
+
+        // Enhanced notification system
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span>${getNotificationIcon(type)}</span>
+                    <span>${message}</span>
+                </div>
+            `;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => notification.classList.add('show'), 100);
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    if (document.body.contains(notification)) {
+                        document.body.removeChild(notification);
+                    }
+                }, 300);
+            }, 4000);
+        }
+
+        function getNotificationIcon(type) {
+            switch(type) {
+                case 'success': return '✅';
+                case 'error': return '❌';
+                case 'warning': return '⚠️';
+                default: return 'ℹ️';
+            }
+        }
+
+        // Enhanced data saving
+        function saveData() {
+            try {
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                localStorage.setItem('cart', JSON.stringify(cart));
+                localStorage.setItem('orders', JSON.stringify(orders));
+                localStorage.setItem('customOrders', JSON.stringify(customOrders));
+                localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
+                localStorage.setItem('contactMessages', JSON.stringify(contactMessages));
+                localStorage.setItem('products', JSON.stringify(products));
+            } catch (error) {
+                console.error('Error saving data:', error);
+                showNotification('Помилка збереження даних', 'error');
+            }
+        }
+
+        // Enhanced email uniqueness check
+        function emailExists(email) {
+            return registeredUsers.some(user => user.email.toLowerCase() === email.toLowerCase());
+        }
+
+        // Show section function
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById(sectionId).classList.add('active');
+
+            if (sectionId === 'catalog') {
+                loadProducts();
+            } else if (sectionId === 'cart') {
+                loadCart();
+            } else if (sectionId === 'admin') {
+                if (isAdmin) {
+                    loadAdminData();
+                } else {
+                    showNotification('Доступ заборонено', 'error');
+                    showSection('home');
+                }
+            } else if (sectionId === 'profile') {
+                if (currentUser) {
+                    loadProfile();
+                } else {
+                    showNotification('Спочатку увійдіть в систему', 'warning');
+                    showSection('login');
+                }
+            } else if (sectionId === 'constructor') {
+                setTimeout(() => {
+                    if (renderer) {
+                        renderer.setSize(
+                            document.getElementById('constructor-viewport').offsetWidth,
+                            document.getElementById('constructor-viewport').offsetHeight
+                        );
+                    }
+                }, 100);
+            }
+        }
+
+        // Enhanced UI update
+        function updateUI() {
+            if (currentUser) {
+                if (isAdmin) {
+                    document.getElementById('login-btn').style.display = 'none';
+                    document.getElementById('profile-btn').style.display = 'none';
+                    document.getElementById('admin-btn').style.display = 'block';
+                } else {
+                    document.getElementById('login-btn').style.display = 'none';
+                    document.getElementById('profile-btn').style.display = 'block';
+                    document.getElementById('admin-btn').style.display = 'none';
+                }
+            } else {
+                document.getElementById('login-btn').style.display = 'block';
+                document.getElementById('profile-btn').style.display = 'none';
+                document.getElementById('admin-btn').style.display = 'none';
+            }
+        }
+
+        // Enhanced product loading
+        function loadProducts() {
+            const searchTerm = document.getElementById('search-input')?.value.toLowerCase() || '';
+            const categoryFilter = document.getElementById('category-filter')?.value || '';
+            const materialFilter = document.getElementById('material-filter')?.value || '';
+
+            let filteredProducts = products.filter(product => {
+                const matchesSearch = product.name.toLowerCase().includes(searchTerm);
+                const matchesCategory = !categoryFilter || product.category === categoryFilter;
+                const matchesMaterial = !materialFilter || product.material === materialFilter;
+                return matchesSearch && matchesCategory && matchesMaterial;
+            });
+
+            const grid = document.getElementById('products-grid');
+            if (grid) {
+                grid.innerHTML = filteredProducts.map(product => `
+                    <div class="product-card fade-in-up">
+                        <div class="product-image">
+                            ${product.imageUrl ? 
+                                `<img src="${product.imageUrl}" alt="${product.name}" style="width: 100%; height: 100%; object-fit: cover;">` : 
+                                product.image
+                            }
+                        </div>
+                        <div class="product-info">
+                            <div class="product-name">${product.name}</div>
+                            <div class="product-price">${product.price} ₴</div>
+                            <div class="product-description">${product.description}</div>
+                            <button class="add-to-cart" onclick="addToCart(${product.id})">
+                                ➕ Додати в кошик
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // Filter by category
+        function filterByCategory(category) {
+            showSection('catalog');
+            setTimeout(() => {
+                if (document.getElementById('category-filter')) {
+                    document.getElementById('category-filter').value = category;
+                    loadProducts();
+                }
+            }, 100);
+        }
+
+        // Enhanced cart management
+        function addToCart(productId) {
+            const product = products.find(p => p.id === productId);
+            if (product) {
+                const existingItem = cart.find(item => item.id === productId);
+                if (existingItem) {
+                    existingItem.quantity += 1;
+                } else {
+                    cart.push({...product, quantity: 1});
+                }
+                updateCartCount();
+                saveData();
+                showNotification('Товар додано в кошик!', 'success');
+            }
+        }
+
+        function updateCartCount() {
+            const count = cart.reduce((sum, item) => sum + item.quantity, 0);
+            const countElement = document.getElementById('cart-count');
+            if (countElement) {
+                countElement.textContent = count;
+            }
+        }
+
+        function loadCart() {
+            const cartContainer = document.getElementById('cart-items');
+            const checkoutForm = document.getElementById('checkout-form');
+            
+            if (!cartContainer) return;
+            
+            if (cart.length === 0) {
+                cartContainer.innerHTML = '<p style="text-align: center; color: var(--text-muted);">Ваш кошик порожній</p>';
+                if (checkoutForm) checkoutForm.style.display = 'none';
+                return;
+            }
+
+            const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            
+            cartContainer.innerHTML = `
+                <div style="padding: 1.5rem;">
+                    ${cart.map(item => `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 0; border-bottom: 1px solid var(--border-light);">
+                            <div>
+                                <strong>${item.name}</strong><br>
+                                <span style="color: var(--text-muted);">${item.price} ₴ × ${item.quantity}</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 1rem;">
+                                <button class="btn btn-secondary" onclick="updateQuantity(${item.id}, ${item.quantity - 1})" style="padding: 0.25rem 0.5rem;">−</button>
+                                <span style="font-weight: 600;">${item.quantity}</span>
+                                <button class="btn btn-secondary" onclick="updateQuantity(${item.id}, ${item.quantity + 1})" style="padding: 0.25rem 0.5rem;">+</button>
+                                <button class="btn btn-secondary" onclick="removeFromCart(${item.id})" style="padding: 0.25rem 0.5rem;">🗑️</button>
+                            </div>
+                        </div>
+                    `).join('')}
+                    <div style="text-align: right; font-size: 1.5rem; font-weight: 700; margin-top: 1rem; color: var(--text-primary);">
+                        Загалом: ${total} ₴
+                    </div>
+                </div>
+            `;
+            
+            if (checkoutForm) checkoutForm.style.display = 'block';
+        }
+
+        function updateQuantity(productId, newQuantity) {
+            if (newQuantity <= 0) {
+                removeFromCart(productId);
+                return;
+            }
+            
+            const item = cart.find(item => item.id === productId);
+            if (item) {
+                item.quantity = newQuantity;
+                updateCartCount();
+                saveData();
+                loadCart();
+            }
+        }
+
+        function removeFromCart(productId) {
+            cart = cart.filter(item => item.id !== productId);
+            updateCartCount();
+            saveData();
+            loadCart();
+            showNotification('Товар видалено з кошика', 'info');
+        }
+
+        // Enhanced order submission
+        function submitOrder() {
+            const name = document.getElementById('customer-name')?.value;
+            const email = document.getElementById('customer-email')?.value;
+            const phone = document.getElementById('customer-phone')?.value;
+            const delivery = document.getElementById('delivery-method')?.value;
+            const address = document.getElementById('delivery-address')?.value;
+            const payment = document.getElementById('payment-method')?.value;
+
+            if (!name || !email || !phone || !address) {
+                showNotification('Будь ласка, заповніть всі обов\'язкові поля', 'error');
+                return;
+            }
+
+            const order = {
+                id: orders.length + 1,
+                customer: {name, email, phone},
+                items: [...cart],
+                delivery: {method: delivery, address},
+                payment,
+                total: cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+                status: 'pending',
+                date: new Date().toLocaleDateString('uk-UA')
+            };
+
+            orders.push(order);
+            cart = [];
+            updateCartCount();
+            saveData();
+            
+            // Clear form
+            clearForm(['customer-name', 'customer-email', 'customer-phone', 'delivery-address']);
+            
+            showNotification('Замовлення успішно оформлено! Ми зв\'яжемось з вами найближчим часом.', 'success');
+            showSection('home');
+        }
+
+        // Enhanced custom order submission
+        function submitCustomOrder() {
+            const name = document.getElementById('custom-name')?.value;
+            const email = document.getElementById('custom-email')?.value;
+            const phone = document.getElementById('custom-phone')?.value;
+            const material = document.getElementById('custom-material')?.value;
+            const color = document.getElementById('custom-color')?.value;
+            const size = document.getElementById('custom-size')?.value;
+            const comment = document.getElementById('custom-comment')?.value;
+
+            if (!name || !email || !phone) {
+                showNotification('Будь ласка, заповніть всі обов\'язкові поля', 'error');
+                return;
+            }
+
+            const customOrder = {
+                id: customOrders.length + 1,
+                customer: {name, email, phone},
+                material,
+                color,
+                size,
+                comment,
+                status: 'pending',
+                date: new Date().toLocaleDateString('uk-UA')
+            };
+
+            customOrders.push(customOrder);
+            saveData();
+            
+            // Clear form
+            clearForm(['custom-name', 'custom-email', 'custom-phone', 'custom-size', 'custom-comment']);
+            
+            showNotification('Заявка успішно надіслана! Ми розрахуємо вартість і зв\'яжемось з вами.', 'success');
+            showSection('home');
+        }
+
+        // Enhanced authentication
+        function login() {
+            const email = document.getElementById('login-email')?.value;
+            const password = document.getElementById('login-password')?.value;
+
+            if (!email || !password) {
+                showNotification('Заповніть всі поля', 'error');
+                return;
+            }
+
+            if (email === 'admin@3dprint.com' && password === 'admin123') {
+                currentUser = {email, role: 'admin', name: 'Адміністратор'};
+                isAdmin = true;
+                saveData();
+                updateUI();
+                showNotification('Вхід виконано як адміністратор', 'success');
+                showSection('admin');
+            } else {
+                const user = registeredUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
+                if (user) {
+                    currentUser = {email: user.email, role: 'user', name: user.name, phone: user.phone};
+                    isAdmin = false;
+                    saveData();
+                    updateUI();
+                    showNotification(`Ласкаво просимо, ${user.name}!`, 'success');
+                    showSection('profile');
+                } else {
+                    showNotification('Користувач не знайдений. Спочатку зареєструйтесь.', 'error');
+                    return;
+                }
+            }
+            
+            // Clear form
+            clearForm(['login-email', 'login-password']);
+        }
+
+        // Enhanced registration with better validation
+        function register() {
+            const name = document.getElementById('register-name')?.value;
+            const email = document.getElementById('register-email')?.value;
+            const phone = document.getElementById('register-phone')?.value;
+            const password = document.getElementById('register-password')?.value;
+
+            if (!name || !email || !password) {
+                showNotification('Будь ласка, заповніть всі обов\'язкові поля', 'error');
+                return;
+            }
+
+            if (password.length < 6) {
+                showNotification('Пароль повинен містити мінімум 6 символів', 'error');
+                return;
+            }
+
+            if (emailExists(email)) {
+                // Show login suggestion with better UX
+                const registerForm = document.querySelector('#register .form');
+                let existingSuggestion = registerForm.querySelector('.login-suggestion');
+                if (existingSuggestion) {
+                    existingSuggestion.remove();
+                }
+                
+                const loginSuggestion = document.createElement('div');
+                loginSuggestion.className = 'login-suggestion';
+                loginSuggestion.style.cssText = `
+                    background: #e3f2fd; 
+                    border: 2px solid #2196f3; 
+                    border-radius: var(--radius-md); 
+                    padding: 1rem; 
+                    margin: 1rem 0; 
+                    color: #1565c0;
+                `;
+                loginSuggestion.innerHTML = `
+                    <strong>⚠️ Користувач з таким email вже існує!</strong><br>
+                    <span style="margin-top: 0.5rem; display: inline-block;">
+                        Можливо, ви хочете 
+                        <a href="#" onclick="showSection('login'); this.closest('.login-suggestion').remove(); clearForm(['register-name', 'register-email', 'register-phone', 'register-password']);" 
+                           style="color: #1976d2; text-decoration: underline;">увійти в систему</a>?
+                    </span>
+                `;
+                registerForm.appendChild(loginSuggestion);
+                showNotification('Email вже зареєстрований', 'warning');
+                return;
+            }
+
+            const newUser = {
+                name,
+                email,
+                phone: phone || '',
+                registrationDate: new Date().toLocaleDateString('uk-UA')
+            };
+
+            registeredUsers.push(newUser);
+            saveData();
+            
+            // Clear form
+            clearForm(['register-name', 'register-email', 'register-phone', 'register-password']);
+            
+            showNotification('Реєстрація успішна! Тепер ви можете увійти в систему.', 'success');
+            showSection('login');
+        }
+
+        // Profile management
+        function loadProfile() {
+            if (!currentUser) return;
+
+            const profileInfo = document.getElementById('profile-info');
+            const userOrders = orders.filter(order => 
+                order.customer.email.toLowerCase() === currentUser.email.toLowerCase()
+            );
+
+            if (profileInfo) {
+                profileInfo.innerHTML = `
+                    <div class="info-card">
+                        <div class="info-label">Ім'я</div>
+                        <div class="info-value">${currentUser.name}</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-label">Email</div>
+                        <div class="info-value">${currentUser.email}</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-label">Телефон</div>
+                        <div class="info-value">${currentUser.phone || 'Не вказано'}</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-label">Замовлень</div>
+                        <div class="info-value">${userOrders.length}</div>
+                    </div>
+                `;
+            }
+
+            const ordersContainer = document.getElementById('user-orders');
+            if (ordersContainer) {
+                if (userOrders.length === 0) {
+                    ordersContainer.innerHTML = '<p style="text-align: center; color: var(--text-muted);">У вас поки немає замовлень</p>';
+                } else {
+                    ordersContainer.innerHTML = `
+                        <div class="table-container">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>№</th>
+                                        <th>Дата</th>
+                                        <th>Товари</th>
+                                        <th>Сума</th>
+                                        <th>Статус</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${userOrders.map(order => `
+                                        <tr>
+                                            <td>#${order.id}</td>
+                                            <td>${order.date}</td>
+                                            <td>${order.items.map(item => `${item.name} (${item.quantity})`).join(', ')}</td>
+                                            <td>${order.total} ₴</td>
+                                            <td><span class="status status-${order.status}">${getStatusText(order.status)}</span></td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        function getStatusText(status) {
+            switch(status) {
+                case 'pending': return 'В обробці';
+                case 'processing': return 'Виконується';
+                case 'completed': return 'Завершено';
+                default: return status;
+            }
+        }
+
+        function editProfile() {
+            document.getElementById('profile-info').style.display = 'none';
+            document.getElementById('edit-profile-form').style.display = 'block';
+            
+            // Fill form with current data
+            document.getElementById('edit-name').value = currentUser.name;
+            document.getElementById('edit-email').value = currentUser.email;
+            document.getElementById('edit-phone').value = currentUser.phone || '';
+        }
+
+        function saveProfile() {
+            const newName = document.getElementById('edit-name').value;
+            const newEmail = document.getElementById('edit-email').value;
+            const newPhone = document.getElementById('edit-phone').value;
+
+            if (!newName || !newEmail) {
+                showNotification('Ім\'я та email обов\'язкові', 'error');
+                return;
+            }
+
+            // Update current user
+            currentUser.name = newName;
+            currentUser.email = newEmail;
+            currentUser.phone = newPhone;
+
+            // Update in registered users
+            const userIndex = registeredUsers.findIndex(u => u.email === currentUser.email);
+            if (userIndex !== -1) {
+                registeredUsers[userIndex] = {
+                    ...registeredUsers[userIndex],
+                    name: newName,
+                    email: newEmail,
+                    phone: newPhone
+                };
+            }
+
+            saveData();
+            cancelEdit();
+            loadProfile();
+            showNotification('Профіль оновлено!', 'success');
+        }
+
+        function cancelEdit() {
+            document.getElementById('profile-info').style.display = 'grid';
+            document.getElementById('edit-profile-form').style.display = 'none';
+        }
+
+        function logout() {
+            currentUser = null;
+            isAdmin = false;
+            saveData();
+            updateUI();
+            showNotification('Ви вийшли з системи', 'info');
+            showSection('home');
+        }
+
+        // File handling for custom orders
+        function handleFileSelect(input) {
+            const file = input.files[0];
+            if (file) {
+                const fileUpload = input.closest('.file-upload');
+                fileUpload.querySelector('p').innerHTML = `
+                    <strong>✅ Файл обрано:</strong><br>
+                    ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)
+                `;
+                showNotification('Файл успішно завантажено', 'success');
+            }
+        }
+
+        // Image preview for products
+        function previewImage(input) {
+            const file = input.files[0];
+            const preview = document.getElementById('image-preview');
+            
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // 3D Constructor Implementation
+        function init3DConstructor() {
+            const viewport = document.getElementById('constructor-viewport');
+            if (!viewport) return;
+
+            // Scene setup
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf0f0f0);
+
+            // Camera setup
+            camera = new THREE.PerspectiveCamera(75, viewport.offsetWidth / viewport.offsetHeight, 0.1, 1000);
+            camera.position.set(5, 5, 5);
+            camera.lookAt(0, 0, 0);
+
+            // Renderer setup
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(viewport.offsetWidth, viewport.offsetHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            
+            // Clear viewport and add renderer
+            viewport.innerHTML = '';
+            viewport.appendChild(renderer.domElement);
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 10, 5);
+            directionalLight.castShadow = true;
+            scene.add(directionalLight);
+
+            // Grid
+            const gridHelper = new THREE.GridHelper(10, 10);
+            scene.add(gridHelper);
+
+            // Simple orbit controls (mouse interaction)
+            let isMouseDown = false;
+            let mouseX = 0;
+            let mouseY = 0;
+
+            viewport.addEventListener('mousedown', (event) => {
+                isMouseDown = true;
+                mouseX = event.clientX;
+                mouseY = event.clientY;
+            });
+
+            document.addEventListener('mouseup', () => {
+                isMouseDown = false;
+            });
+
+            viewport.addEventListener('mousemove', (event) => {
+                if (!isMouseDown) return;
+
+                const deltaX = event.clientX - mouseX;
+                const deltaY = event.clientY - mouseY;
+
+                // Rotate camera around scene
+                const spherical = new THREE.Spherical();
+                spherical.setFromVector3(camera.position);
+                spherical.theta -= deltaX * 0.01;
+                spherical.phi += deltaY * 0.01;
+                spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi));
+
+                camera.position.setFromSpherical(spherical);
+                camera.lookAt(0, 0, 0);
+
+                mouseX = event.clientX;
+                mouseY = event.clientY;
+            });
+
+            // Zoom with wheel
+            viewport.addEventListener('wheel', (event) => {
+                event.preventDefault();
+                const scale = event.deltaY > 0 ? 1.1 : 0.9;
+                camera.position.multiplyScalar(scale);
+                camera.position.clampLength(2, 50);
+            });
+
+            animate();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (renderer && scene && camera) {
+                renderer.render(scene, camera);
+            }
+        }
+
+        function addShape(type) {
+            let geometry, material, mesh;
+            
+            material = new THREE.MeshLambertMaterial({ 
+                color: Math.random() * 0xffffff 
+            });
+
+            switch(type) {
+                case 'cube':
+                    geometry = new THREE.BoxGeometry(1, 1, 1);
+                    break;
+                case 'sphere':
+                    geometry = new THREE.SphereGeometry(0.5, 32, 32);
+                    break;
+                case 'cylinder':
+                    geometry = new THREE.CylinderGeometry(0.5, 0.5, 1, 32);
+                    break;
+                default:
+                    return;
+            }
+
+            mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(
+                (Math.random() - 0.5) * 4,
+                0.5,
+                (Math.random() - 0.5) * 4
+            );
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+
+            scene.add(mesh);
+            constructorObjects.push(mesh);
+            
+            showNotification(`${type} додано до сцени`, 'success');
+        }
+
+        function clearScene() {
+            constructorObjects.forEach(obj => {
+                scene.remove(obj);
+            });
+            constructorObjects = [];
+            showNotification('Сцену очищено', 'info');
+        }
+
+        function exportSTL() {
+            if (constructorObjects.length === 0) {
+                showNotification('Немає об\'єктів для експорту', 'warning');
+                return;
+            }
+
+            // Simple STL export simulation
+            const stlContent = generateSTLContent();
+            const blob = new Blob([stlContent], { type: 'application/octet-stream' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'model_' + Date.now() + '.stl';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showNotification('STL файл завантажено!', 'success');
+        }
+
+        function generateSTLContent() {
+            // Simplified STL generation for demo
+            let stl = 'solid model\n';
+            
+            constructorObjects.forEach(obj => {
+                const geometry = obj.geometry;
+                const position = obj.position;
+                
+                if (geometry.isBoxGeometry) {
+                    // Add simple box faces to STL
+                    stl += `  facet normal 0 0 1
+  outer loop
+    vertex ${position.x - 0.5} ${position.y - 0.5} ${position.z + 0.5}
+    vertex ${position.x + 0.5} ${position.y - 0.5} ${position.z + 0.5}
+    vertex ${position.x + 0.5} ${position.y + 0.5} ${position.z + 0.5}
+  endloop
+endfacet
+`;
+                }
+            });
+            
+            stl += 'endsolid model';
+            return stl;
+        }
+
+        function orderCurrentModel() {
+            if (constructorObjects.length === 0) {
+                showNotification('Спочатку створіть модель', 'warning');
+                return;
+            }
+            
+            showNotification('Переходимо до оформлення замовлення...', 'info');
+            showSection('custom-order');
+            
+            // Pre-fill comment with model info
+            setTimeout(() => {
+                const comment = document.getElementById('custom-comment');
+                if (comment) {
+                    comment.value = `Модель створена в 3D конструкторі (${constructorObjects.length} об'єктів)`;
+                }
+            }, 100);
+        }
+
+        // Admin functions
+        function showAdminSection(sectionId) {
+            document.querySelectorAll('.admin-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            const targetSection = document.getElementById('admin-' + sectionId);
+            if (targetSection) {
+                targetSection.classList.add('active');
+            }
+        }
+
+        function loadAdminData() {
+            loadAdminProducts();
+            loadAdminOrders();
+            loadAdminCustomOrders();
+            loadAdminUsers();
+            loadAdminMessages();
+            loadAnalytics();
+            updateDataStats();
+        }
+
+        function loadAdminProducts() {
+            const table = document.getElementById('products-table');
+            if (!table) return;
+            
+            table.innerHTML = `
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Фото</th>
+                            <th>Назва</th>
+                            <th>Ціна</th>
+                            <th>Категорія</th>
+                            <th>Матеріал</th>
+                            <th>Дії</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${products.map(product => `
+                            <tr>
+                                <td>${product.id}</td>
+                                <td>
+                                    ${product.imageUrl ? 
+                                        `<img src="${product.imageUrl}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;">` : 
+                                        `<span style="font-size: 2rem;">${product.image}</span>`
+                                    }
+                                </td>
+                                <td>${product.name}</td>
+                                <td>${product.price} ₴</td>
+                                <td>${getCategoryName(product.category)}</td>
+                                <td>${product.material}</td>
+                                <td>
+                                    <button class="btn btn-secondary" onclick="deleteProduct(${product.id})" style="padding: 0.5rem; font-size: 0.875rem;">🗑️</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function getCategoryName(category) {
+            const categories = {
+                'toys': 'Іграшки',
+                'decor': 'Декор', 
+                'parts': 'Запчастини',
+                'medical': 'Медичні'
+            };
+            return categories[category] || category;
+        }
+
+        function loadAdminOrders() {
+            const table = document.getElementById('orders-table');
+            if (!table) return;
+            
+            table.innerHTML = `
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Клієнт</th>
+                            <th>Email</th>
+                            <th>Телефон</th>
+                            <th>Сума</th>
+                            <th>Статус</th>
+                            <th>Дата</th>
+                            <th>Дії</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${orders.map(order => `
+                            <tr>
+                                <td>#${order.id}</td>
+                                <td>${order.customer.name}</td>
+                                <td>${order.customer.email}</td>
+                                <td>${order.customer.phone}</td>
+                                <td>${order.total} ₴</td>
+                                <td><span class="status status-${order.status}">${getStatusText(order.status)}</span></td>
+                                <td>${order.date}</td>
+                                <td>
+                                    <select onchange="updateOrderStatus(${order.id}, this.value)" style="padding: 0.25rem; border-radius: 4px; border: 1px solid var(--border-medium);">
+                                        <option value="pending" ${order.status === 'pending' ? 'selected' : ''}>В обробці</option>
+                                        <option value="processing" ${order.status === 'processing' ? 'selected' : ''}>Виконується</option>
+                                        <option value="completed" ${order.status === 'completed' ? 'selected' : ''}>Завершено</option>
+                                    </select>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function loadAdminCustomOrders() {
+            const table = document.getElementById('custom-orders-table');
+            if (!table) return;
+            
+            table.innerHTML = `
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Клієнт</th>
+                            <th>Email</th>
+                            <th>Телефон</th>
+                            <th>Матеріал</th>
+                            <th>Колір</th>
+                            <th>Розмір</th>
+                            <th>Статус</th>
+                            <th>Дата</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${customOrders.map(order => `
+                            <tr>
+                                <td>#${order.id}</td>
+                                <td>${order.customer.name}</td>
+                                <td>${order.customer.email}</td>
+                                <td>${order.customer.phone}</td>
+                                <td>${order.material}</td>
+                                <td>${order.color}</td>
+                                <td>${order.size || 'Не вказано'}</td>
+                                <td><span class="status status-${order.status}">${getStatusText(order.status)}</span></td>
+                                <td>${order.date}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function loadAdminUsers() {
+            const table = document.getElementById('users-table');
+            if (!table) return;
+            
+            table.innerHTML = `
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Ім'я</th>
+                            <th>Email</th>
+                            <th>Телефон</th>
+                            <th>Дата реєстрації</th>
+                            <th>Замовлень</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${registeredUsers.map(user => {
+                            const userOrders = orders.filter(o => o.customer.email.toLowerCase() === user.email.toLowerCase());
+                            return `
+                                <tr>
+                                    <td>${user.name}</td>
+                                    <td>${user.email}</td>
+                                    <td>${user.phone || 'Не вказано'}</td>
+                                    <td>${user.registrationDate}</td>
+                                    <td>${userOrders.length}</td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function loadAdminMessages() {
+            const table = document.getElementById('messages-table');
+            if (!table) return;
+            
+            table.innerHTML = `
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Ім'я</th>
+                            <th>Email</th>
+                            <th>Повідомлення</th>
+                            <th>Дата</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${contactMessages.map(msg => `
+                            <tr>
+                                <td>${msg.name}</td>
+                                <td>${msg.email}</td>
+                                <td title="${msg.message}">${msg.message.substring(0, 100)}${msg.message.length > 100 ? '...' : ''}</td>
+                                <td>${msg.date}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function updateDataStats() {
+            const statElements = {
+                'stat-orders': orders.length,
+                'stat-custom': customOrders.length,
+                'stat-users': registeredUsers.length,
+                'stat-messages': contactMessages.length
+            };
+
+            Object.entries(statElements).forEach(([id, value]) => {
+                const element = document.getElementById(id);
+                if (element) element.textContent = value;
+            });
+        }
+
+        function loadAnalytics() {
+            const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
+            
+            const elements = {
+                'total-orders': orders.length,
+                'total-revenue': totalRevenue,
+                'total-products': products.length
+            };
+
+            Object.entries(elements).forEach(([id, value]) => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.textContent = id === 'total-revenue' ? `${value} ₴` : value;
+                }
+            });
+        }
+
+        function showAddProductForm() {
+            document.getElementById('add-product-modal').style.display = 'block';
+        }
+
+        function closeAddProductModal() {
+            document.getElementById('add-product-modal').style.display = 'none';
+            clearForm(['new-product-name', 'new-product-price', 'new-product-description']);
+            const preview = document.getElementById('image-preview');
+            if (preview) preview.style.display = 'none';
+        }
+
+        function addProduct() {
+            const name = document.getElementById('new-product-name')?.value;
+            const price = parseInt(document.getElementById('new-product-price')?.value);
+            const category = document.getElementById('new-product-category')?.value;
+            const material = document.getElementById('new-product-material')?.value;
+            const description = document.getElementById('new-product-description')?.value;
+            const imageInput = document.getElementById('product-image');
+            
+            if (!name || !price) {
+                showNotification('Заповніть обов\'язкові поля', 'error');
+                return;
+            }
+
+            const newProduct = {
+                id: Math.max(...products.map(p => p.id), 0) + 1,
+                name,
+                price,
+                category,
+                material,
+                description: description || 'Опис відсутній',
+                image: '📦',
+                imageUrl: null
+            };
+
+            // Handle image if uploaded
+            if (imageInput.files && imageInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    newProduct.imageUrl = e.target.result;
+                    products.push(newProduct);
+                    saveData();
+                    closeAddProductModal();
+                    loadAdminProducts();
+                    loadProducts();
+                    showNotification('Товар з фото додано успішно!', 'success');
+                };
+                reader.readAsDataURL(imageInput.files[0]);
+            } else {
+                products.push(newProduct);
+                saveData();
+                closeAddProductModal();
+                loadAdminProducts();
+                loadProducts();
+                showNotification('Товар додано успішно!', 'success');
+            }
+        }
+
+        function deleteProduct(productId) {
+            if (confirm('Видалити цей товар?')) {
+                products = products.filter(p => p.id !== productId);
+                saveData();
+                loadAdminProducts();
+                loadProducts();
+                showNotification('Товар видалено', 'info');
+            }
+        }
+
+        function updateOrderStatus(orderId, newStatus) {
+            const order = orders.find(o => o.id === orderId);
+            if (order) {
+                order.status = newStatus;
+                saveData();
+                loadAdminOrders();
+                showNotification('Статус замовлення оновлено', 'success');
+            }
+        }
+
+        // Export functions
+        function exportToExcel(dataType) {
+            let data = [];
+            let filename = '';
+            
+            switch(dataType) {
+                case 'orders':
+                    data = orders.map(order => ({
+                        'ID': order.id,
+                        'Клієнт': order.customer.name,
+                        'Email': order.customer.email,
+                        'Телефон': order.customer.phone,
+                        'Товари': order.items.map(item => `${item.name} (${item.quantity}шт)`).join(', '),
+                        'Сума': order.total + ' ₴',
+                        'Доставка': order.delivery.method,
+                        'Адреса': order.delivery.address,
+                        'Оплата': order.payment,
+                        'Статус': getStatusText(order.status),
+                        'Дата': order.date
+                    }));
+                    filename = 'zamovlennya.xlsx';
+                    break;
+                    
+                case 'customOrders':
+                    data = customOrders.map(order => ({
+                        'ID': order.id,
+                        'Клієнт': order.customer.name,
+                        'Email': order.customer.email,
+                        'Телефон': order.customer.phone,
+                        'Матеріал': order.material,
+                        'Колір': order.color,
+                        'Розмір': order.size,
+                        'Коментар': order.comment,
+                        'Статус': getStatusText(order.status),
+                        'Дата': order.date
+                    }));
+                    filename = 'individualni_zamovlennya.xlsx';
+                    break;
+                    
+                case 'users':
+                    data = registeredUsers.map(user => ({
+                        'Ім\'я': user.name,
+                        'Email': user.email,
+                        'Телефон': user.phone || 'Не вказано',
+                        'Дата реєстрації': user.registrationDate,
+                        'Кількість замовлень': orders.filter(o => o.customer.email === user.email).length
+                    }));
+                    filename = 'koristuvachi.xlsx';
+                    break;
+                    
+                case 'messages':
+                    data = contactMessages.map(msg => ({
+                        'Ім\'я': msg.name,
+                        'Email': msg.email,
+                        'Повідомлення': msg.message,
+                        'Дата': msg.date
+                    }));
+                    filename = 'povidomlennya.xlsx';
+                    break;
+            }
+            
+            if (data.length === 0) {
+                showNotification('Немає даних для експорту', 'warning');
+                return;
+            }
+            
+            try {
+                const ws = XLSX.utils.json_to_sheet(data);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Дані');
+                XLSX.writeFile(wb, filename);
+                showNotification('Файл успішно завантажено!', 'success');
+            } catch (error) {
+                console.error('Export error:', error);
+                showNotification('Помилка експорту файлу', 'error');
+            }
+        }
+
+        function exportAllData() {
+            try {
+                const wb = XLSX.utils.book_new();
+                
+                if (orders.length > 0) {
+                    const ordersData = orders.map(order => ({
+                        'ID': order.id,
+                        'Клієнт': order.customer.name,
+                        'Email': order.customer.email,
+                        'Телефон': order.customer.phone,
+                        'Товари': order.items.map(item => `${item.name} (${item.quantity}шт)`).join(', '),
+                        'Сума': order.total + ' ₴',
+                        'Статус': getStatusText(order.status),
+                        'Дата': order.date
+                    }));
+                    const ws1 = XLSX.utils.json_to_sheet(ordersData);
+                    XLSX.utils.book_append_sheet(wb, ws1, 'Замовлення');
+                }
+                
+                if (customOrders.length > 0) {
+                    const customData = customOrders.map(order => ({
+                        'ID': order.id,
+                        'Клієнт': order.customer.name,
+                        'Email': order.customer.email,
+                        'Матеріал': order.material,
+                        'Колір': order.color,
+                        'Дата': order.date
+                    }));
+                    const ws2 = XLSX.utils.json_to_sheet(customData);
+                    XLSX.utils.book_append_sheet(wb, ws2, 'Індивідуальні');
+                }
+                
+                if (registeredUsers.length > 0) {
+                    const ws3 = XLSX.utils.json_to_sheet(registeredUsers);
+                    XLSX.utils.book_append_sheet(wb, ws3, 'Користувачі');
+                }
+                
+                if (contactMessages.length > 0) {
+                    const ws4 = XLSX.utils.json_to_sheet(contactMessages);
+                    XLSX.utils.book_append_sheet(wb, ws4, 'Повідомлення');
+                }
+                
+                XLSX.writeFile(wb, 'vsi_dani_saytu.xlsx');
+                showNotification('Всі дані експортовано!', 'success');
+            } catch (error) {
+                console.error('Export error:', error);
+                showNotification('Помилка експорту файлу', 'error');
+            }
+        }
+
+        function clearAllData() {
+            if (confirm('Ви впевнені? Це видалить ВСІ дані назавжди!')) {
+                orders = [];
+                customOrders = [];
+                registeredUsers = [];
+                contactMessages = [];
+                saveData();
+                loadAdminData();
+                showNotification('Всі дані очищено', 'info');
+            }
+        }
+
+        // Contact form
+        function sendMessage() {
+            const name = document.getElementById('contact-name')?.value;
+            const email = document.getElementById('contact-email')?.value;
+            const message = document.getElementById('contact-message')?.value;
+
+            if (!name || !email || !message) {
+                showNotification('Заповніть всі поля', 'error');
+                return;
+            }
+
+            const contactMessage = {
+                name,
+                email,
+                message,
+                date: new Date().toLocaleDateString('uk-UA')
+            };
+
+            contactMessages.push(contactMessage);
+            saveData();
+
+            showNotification('Повідомлення надіслано! Ми зв\'яжемось з вами найближчим часом.', 'success');
+            
+            // Clear form
+            clearForm(['contact-name', 'contact-email', 'contact-message']);
+        }
+
+        // Utility functions
+        function clearForm(fieldIds) {
+            fieldIds.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) element.value = '';
+            });
+        }
+
+        // Search functionality with debouncing
+        let searchTimeout;
+        function setupSearchHandlers() {
+            const searchInput = document.getElementById('search-input');
+            const categoryFilter = document.getElementById('category-filter');
+            const materialFilter = document.getElementById('material-filter');
+
+            if (searchInput) {
+                searchInput.addEventListener('input', () => {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(loadProducts, 300);
+                });
+            }
+
+            if (categoryFilter) {
+                categoryFilter.addEventListener('change', loadProducts);
+            }
+
+            if (materialFilter) {
+                materialFilter.addEventListener('change', loadProducts);
+            }
+        }
+
+        // Window resize handler for 3D constructor
+        window.addEventListener('resize', () => {
+            if (renderer && camera) {
+                const viewport = document.getElementById('constructor-viewport');
+                if (viewport) {
+                    camera.aspect = viewport.offsetWidth / viewport.offsetHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(viewport.offsetWidth, viewport.offsetHeight);
+                }
+            }
+        });
+
+        // Initialize everything when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            // Setup search handlers
+            setTimeout(setupSearchHandlers, 100);
+            
+            // Load initial data
+            loadProducts();
+            updateCartCount();
+            updateUI();
+            
+            // Initialize 3D constructor
+            setTimeout(() => {
+                init3DConstructor();
+            }, 500);
+            
+            // Welcome notification
+            setTimeout(() => {
+                showNotification('Ласкаво просимо на 3D Print Pro! 🖨️', 'info');
+            }, 1000);
+        });
+
+        // Also initialize immediately for compatibility
+        loadProducts();
+        updateCartCount();
+        updateUI();
+    </script>
+	let scene, camera, renderer, controls;
+let constructorObjects = [];
+let selectedObject = null;
+let raycaster, mouse;
+let isConstructorInitialized = false;
+
+// Initialize Enhanced 3D Constructor
+function init3DConstructor() {
+    const viewport = document.getElementById('constructor-viewport');
+    const sceneContainer = document.getElementById('scene-container');
+    const loadingDiv = document.getElementById('viewport-loading');
+    
+    if (!viewport || !sceneContainer) return;
+
+    try {
+        // Scene setup
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xf5f5f5);
+
+        // Camera setup
+        const aspect = viewport.offsetWidth / viewport.offsetHeight;
+        camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
+        camera.position.set(8, 8, 8);
+        camera.lookAt(0, 0, 0);
+
+        // Renderer setup
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(viewport.offsetWidth, viewport.offsetHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.setClearColor(0xf5f5f5, 1);
+        
+        // Add renderer to container
+        sceneContainer.appendChild(renderer.domElement);
+
+        // Enhanced Lighting
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(10, 10, 5);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.mapSize.width = 2048;
+        directionalLight.shadow.mapSize.height = 2048;
+        scene.add(directionalLight);
+
+        const hemisphereLight = new THREE.HemisphereLight(0xffffbb, 0x080820, 0.3);
+        scene.add(hemisphereLight);
+
+        // Grid Helper
+        const gridHelper = new THREE.GridHelper(20, 20, 0x888888, 0xcccccc);
+        scene.add(gridHelper);
+
+        // Axes Helper
+        const axesHelper = new THREE.AxesHelper(2);
+        scene.add(axesHelper);
+
+        // Raycaster for object selection
+        raycaster = new THREE.Raycaster();
+        mouse = new THREE.Vector2();
+
+        // Enhanced Mouse Controls
+        setupEnhancedControls(viewport);
+
+        // Hide loading and show controls
+        if (loadingDiv) loadingDiv.style.display = 'none';
+        isConstructorInitialized = true;
+
+        // Start animation loop
+        animate3D();
+        
+        updateObjectsList();
+        showNotification('3D Конструктор готовий до використання!', 'success');
+
+    } catch (error) {
+        console.error('3D Constructor initialization error:', error);
+        if (loadingDiv) {
+            loadingDiv.innerHTML = `
+                <div style="color: #dc3545;">
+                    <div style="font-size: 2rem;">❌</div>
+                    <div>Помилка завантаження 3D конструктора</div>
+                    <div style="font-size: 0.75rem; margin-top: 0.5rem;">Перевірте підключення до інтернету</div>
+                </div>
+            `;
+        }
+        showNotification('Помилка ініціалізації 3D конструктора', 'error');
+    }
+}
+
+// Enhanced Controls Setup
+function setupEnhancedControls(viewport) {
+    let isMouseDown = false;
+    let mouseButton = 0;
+    let lastMouseX = 0, lastMouseY = 0;
+    let cameraDistance = camera.position.length();
+
+    // Mouse down
+    viewport.addEventListener('mousedown', (event) => {
+        event.preventDefault();
+        isMouseDown = true;
+        mouseButton = event.button;
+        lastMouseX = event.clientX;
+        lastMouseY = event.clientY;
+
+        // Check for object selection on left click
+        if (event.button === 0) {
+            checkObjectSelection(event);
+        }
+    });
+
+    // Mouse up
+    document.addEventListener('mouseup', () => {
+        isMouseDown = false;
+    });
+
+    // Mouse move
+    viewport.addEventListener('mousemove', (event) => {
+        if (!isMouseDown) return;
+
+        const deltaX = event.clientX - lastMouseX;
+        const deltaY = event.clientY - lastMouseY;
+
+        if (mouseButton === 0) { // Left button - rotate
+            const spherical = new THREE.Spherical();
+            spherical.setFromVector3(camera.position);
+            spherical.theta -= deltaX * 0.01;
+            spherical.phi += deltaY * 0.01;
+            spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi));
+            spherical.radius = cameraDistance;
+
+            camera.position.setFromSpherical(spherical);
+            camera.lookAt(0, 0, 0);
+        } else if (mouseButton === 2) { // Right button - pan
+            const panX = deltaX * 0.01;
+            const panY = deltaY * 0.01;
+            
+            const left = new THREE.Vector3();
+            const up = new THREE.Vector3();
+            camera.getWorldDirection(new THREE.Vector3());
+            left.crossVectors(camera.up, camera.getWorldDirection(new THREE.Vector3())).normalize();
+            up.copy(camera.up);
+
+            camera.position.add(left.multiplyScalar(-panX));
+            camera.position.add(up.multiplyScalar(panY));
+        }
+
+        lastMouseX = event.clientX;
+        lastMouseY = event.clientY;
+    });
+
+    // Wheel zoom
+    viewport.addEventListener('wheel', (event) => {
+        event.preventDefault();
+        const scale = event.deltaY > 0 ? 1.1 : 0.9;
+        cameraDistance *= scale;
+        cameraDistance = Math.max(2, Math.min(50, cameraDistance));
+        
+        const direction = new THREE.Vector3();
+        direction.subVectors(camera.position, new THREE.Vector3(0, 0, 0)).normalize();
+        camera.position.copy(direction.multiplyScalar(cameraDistance));
+    });
+
+    // Disable right click context menu
+    viewport.addEventListener('contextmenu', (event) => {
+        event.preventDefault();
+    });
+}
+
+// Object Selection
+function checkObjectSelection(event) {
+    const rect = renderer.domElement.getBoundingClientRect();
+    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects(constructorObjects);
+
+    if (intersects.length > 0) {
+        selectObject(intersects[0].object);
+    } else {
+        deselectObject();
+    }
+}
+
+function selectObject(obj) {
+    // Deselect previous
+    if (selectedObject) {
+        selectedObject.material.emissive.setHex(0x000000);
+    }
+
+    // Select new
+    selectedObject = obj;
+    selectedObject.material.emissive.setHex(0x444444);
+
+    // Update properties panel
+    updatePropertiesPanel();
+    showNotification(`Обрано: ${obj.userData.name}`, 'info');
+}
+
+function deselectObject() {
+    if (selectedObject) {
+        selectedObject.material.emissive.setHex(0x000000);
+        selectedObject = null;
+    }
+    hidePropertiesPanel();
+}
+
+function updatePropertiesPanel() {
+    if (!selectedObject) return;
+
+    document.getElementById('object-properties').style.display = 'block';
+    document.getElementById('no-selection').style.display = 'none';
+
+    // Update scale inputs
+    document.getElementById('scale-x').value = selectedObject.scale.x.toFixed(2);
+    document.getElementById('scale-y').value = selectedObject.scale.y.toFixed(2);
+    document.getElementById('scale-z').value = selectedObject.scale.z.toFixed(2);
+
+    // Update position inputs
+    document.getElementById('pos-x').value = selectedObject.position.x.toFixed(2);
+    document.getElementById('pos-y').value = selectedObject.position.y.toFixed(2);
+    document.getElementById('pos-z').value = selectedObject.position.z.toFixed(2);
+
+    // Update rotation inputs (convert to degrees)
+    document.getElementById('rot-x').value = (selectedObject.rotation.x * 180 / Math.PI).toFixed(0);
+    document.getElementById('rot-y').value = (selectedObject.rotation.y * 180 / Math.PI).toFixed(0);
+    document.getElementById('rot-z').value = (selectedObject.rotation.z * 180 / Math.PI).toFixed(0);
+
+    // Update color input
+    document.getElementById('object-color').value = '#' + selectedObject.material.color.getHexString();
+}
+
+function hidePropertiesPanel() {
+    document.getElementById('object-properties').style.display = 'none';
+    document.getElementById('no-selection').style.display = 'block';
+}
+
+// Animation Loop
+function animate3D() {
+    if (!isConstructorInitialized) return;
+    
+    requestAnimationFrame(animate3D);
+    
+    if (renderer && scene && camera) {
+        renderer.render(scene, camera);
+    }
+}
+
+// Enhanced Shape Creation
+function addShape(type) {
+    if (!isConstructorInitialized) {
+        showNotification('3D конструктор ще завантажується...', 'warning');
+        return;
+    }
+
+    let geometry, material, mesh;
+    const selectedColor = document.getElementById('shape-color').value;
+    
+    material = new THREE.MeshLambertMaterial({ 
+        color: selectedColor,
+        transparent: false
+    });
+
+    const shapeNames = {
+        'cube': 'Куб',
+        'sphere': 'Сфера', 
+        'cylinder': 'Циліндр',
+        'cone': 'Конус',
+        'torus': 'Тор',
+        'pyramid': 'Піраміда'
+    };
+
+    switch(type) {
+        case 'cube':
+            geometry = new THREE.BoxGeometry(1, 1, 1);
+            break;
+        case 'sphere':
+            geometry = new THREE.SphereGeometry(0.5, 32, 32);
+            break;
+        case 'cylinder':
+            geometry = new THREE.CylinderGeometry(0.5, 0.5, 1, 32);
+            break;
+        case 'cone':
+            geometry = new THREE.ConeGeometry(0.5, 1, 32);
+            break;
+        case 'torus':
+            geometry = new THREE.TorusGeometry(0.5, 0.2, 16, 100);
+            break;
+        case 'pyramid':
+            geometry = new THREE.ConeGeometry(0.5, 1, 4);
+            break;
+        default:
+            showNotification('Невідомий тип об\'єкта', 'error');
+            return;
+    }
+
+    mesh = new THREE.Mesh(geometry, material);
+    mesh.position.set(
+        (Math.random() - 0.5) * 6,
+        0.5,
+        (Math.random() - 0.5) * 6
+    );
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    
+    // Add metadata
+    mesh.userData = {
+        name: shapeNames[type] + ' ' + (constructorObjects.length + 1),
+        type: type,
+        id: Date.now()
+    };
+
+    scene.add(mesh);
+    constructorObjects.push(mesh);
+    
+    updateObjectsList();
+    updateObjectCount();
+    selectObject(mesh);
+    
+    showNotification(`${shapeNames[type]} додано!`, 'success');
+}
+
+// Object Manipulation Functions
+function updateObjectScale() {
+    if (!selectedObject) return;
+    
+    const x = parseFloat(document.getElementById('scale-x').value) || 1;
+    const y = parseFloat(document.getElementById('scale-y').value) || 1;
+    const z = parseFloat(document.getElementById('scale-z').value) || 1;
+    
+    selectedObject.scale.set(x, y, z);
+}
+
+function updateObjectPosition() {
+    if (!selectedObject) return;
+    
+    const x = parseFloat(document.getElementById('pos-x').value) || 0;
+    const y = parseFloat(document.getElementById('pos-y').value) || 0;
+    const z = parseFloat(document.getElementById('pos-z').value) || 0;
+    
+    selectedObject.position.set(x, y, z);
+}
+
+function updateObjectRotation() {
+    if (!selectedObject) return;
+    
+    const x = (parseFloat(document.getElementById('rot-x').value) || 0) * Math.PI / 180;
+    const y = (parseFloat(document.getElementById('rot-y').value) || 0) * Math.PI / 180;
+    const z = (parseFloat(document.getElementById('rot-z').value) || 0) * Math.PI / 180;
+    
+    selectedObject.rotation.set(x, y, z);
+}
+
+function updateObjectColor() {
+    if (!selectedObject) return;
+    
+    const color = document.getElementById('object-color').value;
+    selectedObject.material.color.setHex(color.replace('#', '0x'));
+    updateObjectsList();
+}
+
+// Objects Management
+function deleteSelected() {
+    if (!selectedObject) {
+        showNotification('Оберіть об\'єкт для видалення', 'warning');
+        return;
+    }
+    
+    const objectName = selectedObject.userData.name;
+    scene.remove(selectedObject);
+    constructorObjects = constructorObjects.filter(obj => obj !== selectedObject);
+    selectedObject = null;
+    
+    updateObjectsList();
+    updateObjectCount();
+    hidePropertiesPanel();
+    
+    showNotification(`${objectName} видалено`, 'info');
+}
+
+function clearScene() {
+    if (constructorObjects.length === 0) {
+        showNotification('Сцена вже порожня', 'info');
+        return;
+    }
+    
+    constructorObjects.forEach(obj => {
+        scene.remove(obj);
+    });
+    constructorObjects = [];
+    selectedObject = null;
+    
+    updateObjectsList();
+    updateObjectCount();
+    hidePropertiesPanel();
+    
+    showNotification('Сцену очищено', 'info');
+}
+
+function updateObjectsList() {
+    const listContainer = document.getElementById('objects-list');
+    if (!listContainer) return;
+    
+    if (constructorObjects.length === 0) {
+        listContainer.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 2rem;">Створіть перший об\'єкт</p>';
+        return;
+    }
+    
+    listContainer.innerHTML = constructorObjects.map((obj, index) => `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; border-bottom: 1px solid var(--border-light); cursor: pointer; ${selectedObject === obj ? 'background: var(--bg-tertiary);' : ''}" onclick="selectObjectFromList(${index})">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <div style="width: 20px; height: 20px; background: #${obj.material.color.getHexString()}; border-radius: 4px; border: 1px solid var(--border-medium);"></div>
+                <span style="font-weight: 500;">${obj.userData.name}</span>
+            </div>
+            <button onclick="deleteObjectFromList(${index}); event.stopPropagation();" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 0.25rem;">🗑️</button>
+        </div>
+    `).join('');
+}
+
+function selectObjectFromList(index) {
+    if (constructorObjects[index]) {
+        selectObject(constructorObjects[index]);
+    }
+}
+
+function deleteObjectFromList(index) {
+    if (constructorObjects[index]) {
+        const obj = constructorObjects[index];
+        scene.remove(obj);
+        constructorObjects.splice(index, 1);
+        
+        if (selectedObject === obj) {
+            selectedObject = null;
+            hidePropertiesPanel();
+        }
+        
+        updateObjectsList();
+        updateObjectCount();
+        showNotification('Об\'єкт видалено', 'info');
+    }
+}
+
+function updateObjectCount() {
+    const counter = document.getElementById('object-count');
+    if (counter) {
+        counter.textContent = constructorObjects.length;
+    }
+}
+
+// Enhanced STL Export
+function exportSTL() {
+    if (constructorObjects.length === 0) {
+        showNotification('Немає об\'єктів для експорту', 'warning');
+        return;
+    }
+
+    try {
+        const stlContent = generateAdvancedSTL();
+        const blob = new Blob([stlContent], { type: 'application/octet-stream' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `3D_model_${new Date().getTime()}.stl`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        showNotification('STL файл успішно завантажено!', 'success');
+    } catch (error) {
+        console.error('STL Export Error:', error);
+        showNotification('Помилка експорту STL файлу', 'error');
+    }
+}
+
+function generateAdvancedSTL() {
+    let stl = 'solid 3DConstructorModel\n';
+    
+    constructorObjects.forEach(obj => {
+        const geometry = obj.geometry.clone();
+        geometry.applyMatrix4(obj.matrix);
+        
+        const vertices = geometry.attributes.position.array;
+        const indices = geometry.index ? geometry.index.array : null;
+        
+        if (indices) {
+            for (let i = 0; i < indices.length; i += 3) {
+                const a = indices[i] * 3;
+                const b = indices[i + 1] * 3;
+                const c = indices[i + 2] * 3;
+                
+                const v1 = new THREE.Vector3(vertices[a], vertices[a + 1], vertices[a + 2]);
+                const v2 = new THREE.Vector3(vertices[b], vertices[b + 1], vertices[b + 2]);
+                const v3 = new THREE.Vector3(vertices[c], vertices[c + 1], vertices[c + 2]);
+                
+                const normal = new THREE.Vector3();
+                const edge1 = new THREE.Vector3().subVectors(v2, v1);
+                const edge2 = new THREE.Vector3().subVectors(v3, v1);
+                normal.crossVectors(edge1, edge2).normalize();
+                
+                stl += `  facet normal ${normal.x.toFixed(6)} ${normal.y.toFixed(6)} ${normal.z.toFixed(6)}\n`;
+                stl += '    outer loop\n';
+                stl += `      vertex ${v1.x.toFixed(6)} ${v1.y.toFixed(6)} ${v1.z.toFixed(6)}\n`;
+                stl += `      vertex ${v2.x.toFixed(6)} ${v2.y.toFixed(6)} ${v2.z.toFixed(6)}\n`;
+                stl += `      vertex ${v3.x.toFixed(6)} ${v3.y.toFixed(6)} ${v3.z.toFixed(6)}\n`;
+                stl += '    endloop\n';
+                stl += '  endfacet\n';
+            }
+        }
+    });
+    
+    stl += 'endsolid 3DConstructorModel\n';
+    return stl;
+}
+
+function orderCurrentModel() {
+    if (constructorObjects.length === 0) {
+        showNotification('Спочатку створіть модель', 'warning');
+        return;
+    }
+    
+    showNotification('Переходимо до оформлення замовлення вашої 3D моделі...', 'info');
+    showSection('custom-order');
+    
+    // Pre-fill form with model info
+    setTimeout(() => {
+        const comment = document.getElementById('custom-comment');
+        if (comment) {
+            const modelInfo = constructorObjects.map(obj => obj.userData.name).join(', ');
+            comment.value = `Модель створена в 3D конструкторі:\n${modelInfo}\nВсього об'єктів: ${constructorObjects.length}`;
+        }
+    }, 100);
+}
+
+// Window resize handler
+window.addEventListener('resize', () => {
+    if (renderer && camera && isConstructorInitialized) {
+        const viewport = document.getElementById('constructor-viewport');
+        if (viewport) {
+            camera.aspect = viewport.offsetWidth / viewport.offsetHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(viewport.offsetWidth, viewport.offsetHeight);
+        }
+    }
+});
+
+// Initialize when section becomes active
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize after a delay to ensure Three.js is loaded
+    setTimeout(() => {
+        if (typeof THREE !== 'undefined') {
+            init3DConstructor();
+        } else {
+            console.error('Three.js не завантажено');
+            showNotification('Помилка завантаження 3D бібліотеки', 'error');
+        }
+    }, 1000);
+});
+</script>
+</body>
+</html>
